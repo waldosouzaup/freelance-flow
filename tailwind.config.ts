@@ -57,6 +57,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "chart-red": "hsl(var(--chart-red))",
+        "chart-yellow": "hsl(var(--chart-yellow))",
+        "chart-green": "hsl(var(--chart-green))",
+        "chart-blue": "hsl(var(--chart-blue))",
+        "chart-orange": "hsl(var(--chart-orange))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -65,20 +70,12 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
