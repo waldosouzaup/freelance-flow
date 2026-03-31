@@ -16,6 +16,7 @@ import ClientForm from "./pages/ClientForm";
 import Calculator from "./pages/Calculator";
 import Billing from "./pages/Billing";
 import Parameters from "./pages/Parameters";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const AppRoutes = () => (
     <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
     <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
     <Route path="/parameters" element={<ProtectedRoute><Parameters /></ProtectedRoute>} />
+    <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
