@@ -49,6 +49,7 @@ const AppRoutes = () => (
     <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
     <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
     <Route path="/parameters" element={<ProtectedRoute><Parameters /></ProtectedRoute>} />
+    <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
