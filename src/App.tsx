@@ -14,6 +14,7 @@ import ProjectDetails from "./pages/ProjectDetails";
 import ClientsList from "./pages/ClientsList";
 import ClientForm from "./pages/ClientForm";
 import Calculator from "./pages/Calculator";
+import Billing from "./pages/Billing";
 import Parameters from "./pages/Parameters";
 import NotFound from "./pages/NotFound";
 
