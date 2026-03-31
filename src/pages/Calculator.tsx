@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Calculator as CalculatorIcon, Plus, Trash2, DollarSign, Clock, Layers, Percent, Tag } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Calculator as CalculatorIcon,
+  Plus,
+  Trash2,
+  DollarSign,
+  Clock,
+  Layers,
+  Percent,
+  Tag,
+  FileDown,
+  User,
+  FolderKanban,
+  ChevronsUpDown,
+  Check,
+  CalendarDays,
+  FileText,
+} from "lucide-react";
+import { toast } from "sonner";
+import { format, addDays } from "date-fns";
+import { generateBudgetPdf, type BudgetData } from "@/lib/generateBudgetPdf";
+import { cn } from "@/lib/utils";
 
 interface CostItem {
   id: string;
@@ -14,31 +48,91 @@ interface CostItem {
   value: number;
 }
 
+interface ClientOption {
+  id: string;
+  name: string;
+  email: string | null;
+}
+
 const Calculator = () => {
   const { user } = useAuth();
-  
+
+  // Budget info
+  const [clientName, setClientName] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [validityDays, setValidityDays] = useState(30);
+  const [paymentConditions, setPaymentConditions] = useState("");
+  const [notes, setNotes] = useState("");
+  const [budgetNumber, setBudgetNumber] = useState("");
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  // Client combobox
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [clientComboOpen, setClientComboOpen] = useState(false);
+
+  // Profile
+  const [freelancerName, setFreelancerName] = useState("");
+  const [freelancerEmail, setFreelancerEmail] = useState("");
+
   // Base
   const [hourlyRate, setHourlyRate] = useState(100);
   const [hours, setHours] = useState(40);
   const [complexity, setComplexity] = useState(1.0);
-  
+
   // Costs
   const [costsList, setCostsList] = useState<CostItem[]>([]);
-  
-  // Modifiers
-  const [profitMargin, setProfitMargin] = useState(0); // %
-  const [tax, setTax] = useState(0); // %
-  const [discountValue, setDiscountValue] = useState(0); // R$
 
+  // Modifiers
+  const [profitMargin, setProfitMargin] = useState(0);
+  const [tax, setTax] = useState(0);
+  const [discountValue, setDiscountValue] = useState(0);
+
+  // Fetch initial data
   useEffect(() => {
     if (!user) return;
-    supabase.from("pricing_parameters").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
-      if (data) {
-        setHourlyRate(Number(data.hourly_rate));
-        setComplexity(Number(data.default_complexity));
-      }
-    });
+
+    // Pricing parameters
+    supabase
+      .from("pricing_parameters")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setHourlyRate(Number(data.hourly_rate));
+          setComplexity(Number(data.default_complexity));
+        }
+      });
+
+    // Clients
+    supabase
+      .from("clients")
+      .select("id, name, email")
+      .eq("user_id", user.id)
+      .order("name")
+      .then(({ data }) => {
+        setClients(data || []);
+      });
+
+    // Profile
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.display_name) setFreelancerName(data.display_name);
+      });
+
+    setFreelancerEmail(user.email || "");
   }, [user]);
+
+  // Generate budget number preview
+  useEffect(() => {
+    const year = new Date().getFullYear();
+    setBudgetNumber(`ORC-${year}-...`);
+  }, []);
 
   const addCost = () => {
     setCostsList([...costsList, { id: crypto.randomUUID(), name: "", value: 0 }]);
@@ -56,19 +150,101 @@ const Calculator = () => {
   const basePrice = hourlyRate * hours * complexity;
   const totalCosts = costsList.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
   const subtotal = basePrice + totalCosts;
-  
+
   const profitAmount = subtotal * (profitMargin / 100);
   const subtotalWithProfit = subtotal + profitAmount;
-  
+
   const taxAmount = subtotalWithProfit * (tax / 100);
   const subtotalWithTaxes = subtotalWithProfit + taxAmount;
-  
+
   const totalDiscount = Number(discountValue) || 0;
-  
+
   const suggestedPrice = Math.max(0, subtotalWithTaxes - totalDiscount);
 
-  const formatCurrency = (val: number) => 
+  const formatCurrency = (val: number) =>
     val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const handleSelectClient = (client: ClientOption) => {
+    setClientName(client.name);
+    setClientEmail(client.email || "");
+    setClientComboOpen(false);
+  };
+
+  const filteredClients = useMemo(() => {
+    if (!clientName) return clients;
+    return clients.filter((c) =>
+      c.name.toLowerCase().includes(clientName.toLowerCase())
+    );
+  }, [clients, clientName]);
+
+  const canGeneratePdf = clientName.trim() && projectName.trim();
+
+  const handleGeneratePdf = async () => {
+    if (!user || !canGeneratePdf) {
+      toast.error("Preencha o nome do cliente e do projeto para gerar o orçamento.");
+      return;
+    }
+
+    setGeneratingPdf(true);
+
+    try {
+      // Get next budget number from Supabase
+      const year = new Date().getFullYear();
+      const { data: rpcData, error } = await supabase.rpc("get_next_budget_number", {
+        p_user_id: user.id,
+        p_year: year,
+      });
+
+      let finalBudgetNumber: string;
+      if (error || rpcData == null) {
+        // Fallback: timestamp-based if RPC not yet deployed
+        const fallback = Date.now().toString(36).toUpperCase().slice(-4);
+        finalBudgetNumber = `ORC-${year}-${fallback}`;
+        console.warn("budget_counter RPC not available, using fallback:", error?.message);
+      } else {
+        finalBudgetNumber = `ORC-${year}-${String(rpcData).padStart(3, "0")}`;
+      }
+
+      setBudgetNumber(finalBudgetNumber);
+
+      const today = new Date();
+      const validity = addDays(today, validityDays);
+
+      const budgetData: BudgetData = {
+        budgetNumber: finalBudgetNumber,
+        date: format(today, "dd/MM/yyyy"),
+        validityDate: format(validity, "dd/MM/yyyy"),
+        freelancerName,
+        freelancerEmail,
+        clientName: clientName.trim(),
+        clientEmail: clientEmail.trim(),
+        projectName: projectName.trim(),
+        hourlyRate,
+        hours,
+        complexity,
+        basePrice,
+        costs: costsList.filter((c) => c.name && c.value > 0),
+        totalCosts,
+        subtotal,
+        profitMargin,
+        profitAmount,
+        tax,
+        taxAmount,
+        discount: totalDiscount,
+        total: suggestedPrice,
+        paymentConditions: paymentConditions.trim(),
+        notes: notes.trim(),
+      };
+
+      generateBudgetPdf(budgetData);
+      toast.success(`Orçamento ${finalBudgetNumber} gerado com sucesso!`);
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      toast.error("Erro ao gerar o PDF do orçamento.");
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-8">
@@ -86,6 +262,152 @@ const Calculator = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form - Left Column */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Budget Info Section */}
+          <Card className="shadow-card border-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                Dados do Orçamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Client Name - Combobox */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Cliente</Label>
+                  <Popover open={clientComboOpen} onOpenChange={setClientComboOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={clientComboOpen}
+                        className="w-full justify-between font-normal h-10"
+                      >
+                        <span className="flex items-center gap-2 truncate">
+                          <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                          {clientName || "Selecionar ou digitar..."}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput
+                          placeholder="Buscar cliente..."
+                          value={clientName}
+                          onValueChange={(val) => {
+                            setClientName(val);
+                          }}
+                        />
+                        <CommandList>
+                          <CommandEmpty>
+                            <div className="py-2 text-sm">
+                              <p className="text-muted-foreground">Nenhum cliente encontrado.</p>
+                              {clientName && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  "<span className="font-medium text-foreground">{clientName}</span>" será usado como nome avulso.
+                                </p>
+                              )}
+                            </div>
+                          </CommandEmpty>
+                          <CommandGroup heading="Clientes cadastrados">
+                            {filteredClients.map((client) => (
+                              <CommandItem
+                                key={client.id}
+                                value={client.name}
+                                onSelect={() => handleSelectClient(client)}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    clientName === client.name ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div>
+                                  <p className="text-sm font-medium">{client.name}</p>
+                                  {client.email && (
+                                    <p className="text-xs text-muted-foreground">{client.email}</p>
+                                  )}
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Client Email */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Email do Cliente</Label>
+                  <Input
+                    type="email"
+                    placeholder="cliente@email.com"
+                    value={clientEmail}
+                    onChange={(e) => setClientEmail(e.target.value)}
+                  />
+                </div>
+
+                {/* Project Name */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Nome do Projeto</Label>
+                  <div className="relative">
+                    <FolderKanban className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Ex: Redesign do Website"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                {/* Validity */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Validade (dias)</Label>
+                  <div className="relative">
+                    <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      min={1}
+                      value={validityDays || ""}
+                      onChange={(e) => setValidityDays(Number(e.target.value))}
+                      className="pl-9"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Válido até: {format(addDays(new Date(), validityDays || 30), "dd/MM/yyyy")}
+                  </p>
+                </div>
+              </div>
+
+              {/* Payment Conditions */}
+              <div className="space-y-2">
+                <Label className="text-sm">Condições de Pagamento</Label>
+                <Textarea
+                  placeholder="Ex: 50% na aprovação, 50% na entrega. Pagamento via PIX ou transferência bancária."
+                  value={paymentConditions}
+                  onChange={(e) => setPaymentConditions(e.target.value)}
+                  rows={2}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label className="text-sm">Observações</Label>
+                <Textarea
+                  placeholder="Informações adicionais para o cliente..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                  className="resize-none"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Base Parameters */}
           <Card className="shadow-card">
             <CardHeader className="pb-3">
@@ -100,10 +422,10 @@ const Calculator = () => {
                   <Label className="text-sm">Valor/Hora (R$)</Label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="number" 
-                      step="0.01" 
-                      value={hourlyRate || ""} 
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={hourlyRate || ""}
                       onChange={(e) => setHourlyRate(Number(e.target.value))}
                       className="pl-9"
                     />
@@ -113,9 +435,9 @@ const Calculator = () => {
                   <Label className="text-sm">Horas Estimadas</Label>
                   <div className="relative">
                     <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="number" 
-                      value={hours || ""} 
+                    <Input
+                      type="number"
+                      value={hours || ""}
                       onChange={(e) => setHours(Number(e.target.value))}
                       className="pl-9"
                     />
@@ -125,12 +447,12 @@ const Calculator = () => {
                   <Label className="text-sm">Complexidade</Label>
                   <div className="relative">
                     <Layers className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="number" 
-                      step="0.1" 
-                      min="0.5" 
-                      max="3.0" 
-                      value={complexity || ""} 
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0.5"
+                      max="3.0"
+                      value={complexity || ""}
                       onChange={(e) => setComplexity(Number(e.target.value))}
                       className="pl-9"
                     />
@@ -169,9 +491,9 @@ const Calculator = () => {
                   {costsList.map((cost) => (
                     <div key={cost.id} className="flex gap-3 items-start p-3 rounded-lg bg-muted/30">
                       <div className="flex-1 space-y-1.5">
-                        <Input 
-                          placeholder="Ex: Domínio, Licença, Banco de Imagens..." 
-                          value={cost.name} 
+                        <Input
+                          placeholder="Ex: Domínio, Licença, Banco de Imagens..."
+                          value={cost.name}
                           onChange={(e) => updateCost(cost.id, "name", e.target.value)}
                           className="bg-background"
                         />
@@ -179,19 +501,19 @@ const Calculator = () => {
                       <div className="w-36 space-y-1.5">
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             step="0.01"
                             className="pl-8 bg-background"
                             placeholder="0,00"
-                            value={cost.value || ""} 
-                            onChange={(e) => updateCost(cost.id, "value", Number(e.target.value))} 
+                            value={cost.value || ""}
+                            onChange={(e) => updateCost(cost.id, "value", Number(e.target.value))}
                           />
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="shrink-0 hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => removeCost(cost.id)}
                       >
@@ -199,7 +521,7 @@ const Calculator = () => {
                       </Button>
                     </div>
                   ))}
-                  
+
                   <div className="flex justify-end pt-2">
                     <p className="text-sm font-medium">
                       Subtotal Extras: <span className="text-primary">{formatCurrency(totalCosts)}</span>
@@ -222,16 +544,16 @@ const Calculator = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label className="text-sm flex justify-between">
-                    Margem de Lucro 
+                    Margem de Lucro
                     <span className="text-muted-foreground font-normal">%</span>
                   </Label>
                   <div className="relative">
                     <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="number" 
-                      step="1" 
+                    <Input
+                      type="number"
+                      step="1"
                       placeholder="20"
-                      value={profitMargin || ""} 
+                      value={profitMargin || ""}
                       onChange={(e) => setProfitMargin(Number(e.target.value))}
                       className="pl-9"
                     />
@@ -239,16 +561,16 @@ const Calculator = () => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm flex justify-between">
-                    Impostos 
+                    Impostos
                     <span className="text-muted-foreground font-normal">%</span>
                   </Label>
                   <div className="relative">
                     <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="number" 
-                      step="0.1" 
+                    <Input
+                      type="number"
+                      step="0.1"
                       placeholder="6.5"
-                      value={tax || ""} 
+                      value={tax || ""}
                       onChange={(e) => setTax(Number(e.target.value))}
                       className="pl-9"
                     />
@@ -256,16 +578,16 @@ const Calculator = () => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm flex justify-between">
-                    Desconto 
+                    Desconto
                     <span className="text-muted-foreground font-normal">R$</span>
                   </Label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="number" 
-                      step="0.01" 
+                    <Input
+                      type="number"
+                      step="0.01"
                       placeholder="0,00"
-                      value={discountValue || ""} 
+                      value={discountValue || ""}
                       onChange={(e) => setDiscountValue(Number(e.target.value))}
                       className="pl-9"
                     />
@@ -288,16 +610,16 @@ const Calculator = () => {
                   <span className="text-muted-foreground">Horas ({hours}h × {complexity}x)</span>
                   <span className="font-medium">{formatCurrency(basePrice)}</span>
                 </div>
-                
+
                 {totalCosts > 0 && (
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Custos Extras ({costsList.length})</span>
                     <span className="font-medium">{formatCurrency(totalCosts)}</span>
                   </div>
                 )}
-                
+
                 <Separator />
-                
+
                 <div className="flex justify-between items-center font-medium p-3 rounded-lg bg-muted/50">
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
@@ -324,7 +646,7 @@ const Calculator = () => {
                   </div>
                 )}
               </div>
-              
+
               <div className="p-4 rounded-lg bg-primary text-primary-foreground">
                 <p className="text-xs font-medium text-primary-foreground/80 mb-1 uppercase tracking-wide">
                   Valor Sugerido
@@ -333,6 +655,31 @@ const Calculator = () => {
                   {formatCurrency(suggestedPrice)}
                 </p>
               </div>
+
+              {/* Budget number preview */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <span>Nº Orçamento</span>
+                <span className="font-mono">{budgetNumber}</span>
+              </div>
+
+              <Separator />
+
+              {/* Generate PDF Button */}
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleGeneratePdf}
+                disabled={generatingPdf || !canGeneratePdf}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                {generatingPdf ? "Gerando PDF..." : "Gerar Orçamento PDF"}
+              </Button>
+
+              {!canGeneratePdf && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Preencha o nome do cliente e do projeto para gerar.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
