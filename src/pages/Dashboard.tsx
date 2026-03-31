@@ -3,8 +3,22 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Progress } from "@/components/ui/progress";
-import { FolderKanban, Users, TrendingUp, Plus, Calculator, CheckCircle2, AlertTriangle, ArrowUpRight } from "lucide-react";
-import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  FolderKanban, 
+  Users, 
+  TrendingUp, 
+  Plus, 
+  Calculator, 
+  CheckCircle2, 
+  Clock,
+  ArrowRight,
+  DollarSign,
+  Calendar,
+  BarChart3
+} from "lucide-react";
+import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { format, isAfter, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -13,6 +27,13 @@ const STATUS_LABELS: Record<string, string> = {
   concluido: "Concluído",
   pausado: "Pausado",
   cancelado: "Cancelado",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  em_andamento: "bg-warning/10 text-warning border-warning/20",
+  concluido: "bg-success/10 text-success border-success/20",
+  pausado: "bg-muted text-muted-foreground border-border",
+  cancelado: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 const Dashboard = () => {
@@ -58,7 +79,7 @@ const Dashboard = () => {
   const next7Days = addDays(now, 7);
   const upcomingDeadlines = projects.filter(
     (p) => p.deadline && p.status === "em_andamento" && isAfter(new Date(p.deadline), now) && !isAfter(new Date(p.deadline), next7Days)
-  ).length;
+  );
 
   const recentProjects = [...projects]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -71,185 +92,253 @@ const Dashboard = () => {
     return Math.round((completed / projectStages.length) * 100);
   };
 
+  const formatCurrency = (value: number) => 
+    value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
-      {/* Primary Showcase (Hero Metrico) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-        <div className="lg:col-span-8 flex flex-col justify-end space-y-6">
-          <div>
-            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Visão Estratégica
-            </p>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">Painel Central</h1>
-          </div>
-          
-          <div className="pt-6 border-t border-border/60">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-2">
-              Volume Total Projetado (All Time)
-            </p>
-            <div className="flex items-start gap-2">
-              <span className="text-2xl text-muted-foreground font-medium mt-1 md:mt-2">R$</span>
-              <span className="text-6xl md:text-8xl font-black tracking-tighter text-emerald-600 dark:text-emerald-500">
-                {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-          </div>
+    <div className="space-y-6 pb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Visão geral dos seus projetos e métricas</p>
         </div>
-
-        <div className="lg:col-span-4 flex flex-col lg:items-end justify-end space-y-4">
-          <div className="w-full h-px bg-border/60 block lg:hidden my-2" />
-          <div className="flex gap-3 flex-col sm:flex-row w-full lg:w-auto">
-            <Link 
-              to="/projects/new" 
-              className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-none bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900 font-bold uppercase tracking-wider text-xs hover:scale-[1.02] shadow-xl hover:shadow-2xl transition-all active:scale-95"
-            >
-              <Plus className="h-4 w-4" /> Novo Projeto
+        <div className="flex gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/calculator">
+              <Calculator className="h-4 w-4 mr-2" />
+              Calculadora
             </Link>
-            <Link 
-              to="/calculator" 
-              className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-none border border-zinc-900 text-zinc-900 dark:border-zinc-50 dark:text-zinc-50 font-bold uppercase tracking-wider text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors active:scale-95"
-            >
-              <Calculator className="h-4 w-4" /> Precificar
+          </Button>
+          <Button asChild size="sm">
+            <Link to="/projects/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Projeto
             </Link>
-          </div>
+          </Button>
         </div>
       </div>
 
-      {/* Secondary Metrics - Sharp Technical style */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-4">
-        <div className="border border-border bg-card p-5 hover:border-zinc-500/50 transition-colors duration-300 relative group overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/20 group-hover:bg-emerald-500 transition-colors" />
-          <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center justify-between mb-4">
-            Ativos <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-          </p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-4xl font-black tracking-tighter">{activeProjects}</p>
-            <p className="text-xs text-muted-foreground font-mono">/ {totalProjects} TOTAL</p>
-          </div>
-        </div>
-        
-        <div className="border border-border bg-card p-5 hover:border-zinc-500/50 transition-colors duration-300 relative group overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/20 group-hover:bg-blue-500 transition-colors" />
-          <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center justify-between mb-4">
-            Clientes <Users className="w-3.5 h-3.5 text-blue-500" />
-          </p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-4xl font-black tracking-tighter">{totalClients}</p>
-            <p className="text-xs text-muted-foreground font-mono uppercase">Cadastros</p>
-          </div>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Projects */}
+        <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Total de Projetos</p>
+                <p className="text-2xl font-semibold">{totalProjects}</p>
+              </div>
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <FolderKanban className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="border border-border bg-card p-5 hover:border-zinc-500/50 transition-colors duration-300 flex flex-col justify-between relative group overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-zinc-500/20 group-hover:bg-zinc-500 transition-colors" />
-          <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center justify-between mb-4">
-            Conclusão Global <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-          </p>
-          <div className="space-y-3 mt-auto">
-            <p className="text-4xl font-black tracking-tighter">{completionRate}%</p>
-            <Progress value={completionRate} className="h-1 rounded-none bg-border [&>div]:bg-zinc-900 dark:[&>div]:bg-zinc-50" />
-          </div>
-        </div>
+        {/* Active Projects */}
+        <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Em Andamento</p>
+                <p className="text-2xl font-semibold">{activeProjects}</p>
+              </div>
+              <div className="h-12 w-12 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Clock className="h-6 w-6 text-warning" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="border border-border bg-card p-5 hover:border-orange-500/50 transition-colors duration-300 relative group overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-orange-500/20 group-hover:bg-orange-500 transition-colors" />
-          <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase flex items-center justify-between mb-4">
-            Alerta (7 dias) <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />
-          </p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-4xl font-black tracking-tighter text-orange-600 dark:text-orange-500">{upcomingDeadlines}</p>
-            <p className="text-xs text-muted-foreground font-mono uppercase">Vencimentos</p>
-          </div>
-        </div>
+        {/* Clients */}
+        <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Clientes</p>
+                <p className="text-2xl font-semibold">{totalClients}</p>
+              </div>
+              <div className="h-12 w-12 rounded-lg bg-info/10 flex items-center justify-center">
+                <Users className="h-6 w-6 text-info" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Total Value */}
+        <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Valor Total</p>
+                <p className="text-2xl font-semibold">{formatCurrency(totalValue)}</p>
+              </div>
+              <div className="h-12 w-12 rounded-lg bg-success/10 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-success" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 lg:pt-4">
-        {/* Trend Graphic */}
-        <div className="border border-border p-6 space-y-4 relative overflow-hidden group bg-card">
-          <div className="absolute -top-4 -right-4 p-4 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-700 pointer-events-none">
-            <FolderKanban className="w-48 h-48" />
-          </div>
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-widest">Densidade de Projetos</h3>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-mono mt-1">Evolução últimos 6 meses</p>
-          </div>
-          <div className="h-56 mt-6 relative z-10 w-full ml-[-20px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyData}>
-                <XAxis 
-                  dataKey="month" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: "currentColor", opacity: 0.4, fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }} 
-                  dy={10}
-                />
-                <Tooltip 
-                  cursor={{stroke: 'currentColor', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.15}}
-                  contentStyle={{ backgroundColor: "var(--background)", border: "1px solid var(--border)", borderRadius: "0px", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase" }} 
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="currentColor" 
-                  strokeWidth={2.5} 
-                  dot={{ fill: "var(--background)", r: 4, strokeWidth: 2 }} 
-                  activeDot={{ r: 6, fill: "currentColor" }} 
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Recent Activity Mini-board */}
-        <div className="border border-border p-6 flex flex-col bg-card">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-widest">Feed de Operações</h3>
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-mono mt-1">Últimos {recentProjects.length} modificados</p>
+      {/* Completion Rate & Deadlines */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Completion Rate */}
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              Taxa de Conclusão
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Progress value={completionRate} className="h-2" />
+              </div>
+              <span className="text-2xl font-semibold text-success">{completionRate}%</span>
             </div>
-            <Link to="/projects" className="text-[10px] font-bold uppercase tracking-widest hover:underline flex items-center text-muted-foreground hover:text-foreground transition-colors">
-              Explorar <ArrowUpRight className="w-3 h-3 ml-1" />
-            </Link>
-          </div>
-          
-          <div className="flex-1">
-            {recentProjects.length === 0 ? (
-              <div className="h-full min-h-[160px] flex items-center justify-center border border-dashed text-xs text-muted-foreground font-mono uppercase">
-                Zero Registros Ativos
-              </div>
-            ) : (
-              <div className="divide-y divide-border border-y border-border">
-                  {recentProjects.map((p) => (
-                    <Link
-                      key={p.id}
-                      to={`/projects/${p.id}`}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between py-3.5 hover:bg-muted/30 transition-colors group"
-                    >
-                      <div className="flex-1 min-w-0 pr-4">
-                        <p className="font-bold text-sm group-hover:underline truncate">{p.name}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 font-mono">CLIENTE: {p.clients?.name || "N/A"}</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {completedProjects} de {totalProjects} projetos concluídos
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Deadlines */}
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-warning" />
+              Próximos Prazos (7 dias)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-3">
+              {upcomingDeadlines.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum prazo próximo</p>
+              ) : (
+                upcomingDeadlines.slice(0, 3).map((project) => (
+                  <Link 
+                    key={project.id} 
+                    to={`/projects/${project.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{project.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {project.clients?.name || "Sem cliente"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {format(new Date(project.deadline), "dd/MM/yyyy")}
+                      </p>
+                      <p className="text-xs text-warning">Prazo próximo</p>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts & Recent Projects */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Monthly Chart */}
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              Projetos por Mês
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 13% 91%)" />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fill: "hsl(220 10% 46%)", fontSize: 12 }}
+                    axisLine={{ stroke: "hsl(220 13% 91%)" }}
+                    tickLine={false}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "white", 
+                      border: "1px solid hsl(220 13% 91%)", 
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
+                    }} 
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="count" 
+                    stroke="hsl(214 90% 52%)" 
+                    strokeWidth={2}
+                    dot={{ fill: "hsl(214 90% 52%)", r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Projects */}
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <FolderKanban className="h-4 w-4 text-primary" />
+                Projetos Recentes
+              </CardTitle>
+              <Link 
+                to="/projects" 
+                className="text-sm text-primary hover:underline flex items-center gap-1"
+              >
+                Ver todos <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-3">
+              {recentProjects.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Nenhum projeto encontrado
+                </p>
+              ) : (
+                recentProjects.map((project) => (
+                  <Link
+                    key={project.id}
+                    to={`/projects/${project.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{project.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {project.clients?.name || "Sem cliente"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 ml-4">
+                      <span className={`text-xs px-2.5 py-1 rounded-full border ${STATUS_COLORS[project.status]}`}>
+                        {STATUS_LABELS[project.status]}
+                      </span>
+                      <div className="w-16">
+                        <Progress value={getProjectProgress(project.id)} className="h-1.5" />
                       </div>
-                      <div className="text-left sm:text-right mt-2 sm:mt-0 flex flex-row items-center sm:block gap-4">
-                        <span className={`text-[9px] px-2 py-1 font-bold tracking-widest uppercase border ${
-                          p.status === 'em_andamento' ? 'border-orange-500/30 text-orange-500 bg-orange-500/5' : 
-                          p.status === 'concluido' ? 'border-emerald-500/30 text-emerald-600 bg-emerald-500/5 dark:text-emerald-400' : 
-                          'border-zinc-500/30 text-zinc-600 bg-zinc-500/5 dark:text-zinc-400'
-                        }`}>
-                          {STATUS_LABELS[p.status] || p.status}
-                        </span>
-                        <div className="flex items-center gap-2 mt-1.5 justify-end">
-                          <span className="text-[10px] font-mono font-bold">{getProjectProgress(p.id)}%</span>
-                          <div className="w-12 h-1 bg-border hidden sm:block">
-                            <div className="h-full bg-foreground" style={{ width: `${getProjectProgress(p.id)}%` }} />
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-              </div>
-            )}
-          </div>
-        </div>
+                      <span className="text-xs text-muted-foreground w-8 text-right">
+                        {getProjectProgress(project.id)}%
+                      </span>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

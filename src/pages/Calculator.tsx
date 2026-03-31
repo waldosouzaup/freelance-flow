@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { DollarSign, Plus, Trash2, Calculator as CalculatorIcon } from "lucide-react";
+import { Calculator as CalculatorIcon, Plus, Trash2, DollarSign, Clock, Layers, Percent, Tag } from "lucide-react";
 
 interface CostItem {
   id: string;
@@ -71,81 +71,118 @@ const Calculator = () => {
     val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-primary/10 rounded-xl">
-          <CalculatorIcon className="w-8 h-8 text-primary" />
+    <div className="max-w-6xl mx-auto space-y-6 pb-8">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+          <CalculatorIcon className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Calculadora de Precificação</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Monte seus orçamentos de forma detalhada e profissional</p>
+          <h1 className="text-2xl font-semibold text-foreground">Calculadora de Precificação</h1>
+          <p className="text-muted-foreground mt-0.5">Monte orçamentos de forma detalhada e profissional</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* Formulário - Coluna Esquerda */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Form - Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+          {/* Base Parameters */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
                 1. Parâmetros Base
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Valor/Hora (R$)</Label>
-                  <Input type="number" step="0.01" value={hourlyRate || ""} onChange={(e) => setHourlyRate(Number(e.target.value))} />
+                  <Label className="text-sm">Valor/Hora (R$)</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      value={hourlyRate || ""} 
+                      onChange={(e) => setHourlyRate(Number(e.target.value))}
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Horas Estimadas</Label>
-                  <Input type="number" value={hours || ""} onChange={(e) => setHours(Number(e.target.value))} />
+                  <Label className="text-sm">Horas Estimadas</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      type="number" 
+                      value={hours || ""} 
+                      onChange={(e) => setHours(Number(e.target.value))}
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Complexidade</Label>
-                  <Input type="number" step="0.1" min="0.5" max="3.0" value={complexity || ""} onChange={(e) => setComplexity(Number(e.target.value))} />
-                  <p className="text-[10px] text-muted-foreground">Multiplicador (1 = Padrão)</p>
+                  <Label className="text-sm">Complexidade</Label>
+                  <div className="relative">
+                    <Layers className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      type="number" 
+                      step="0.1" 
+                      min="0.5" 
+                      max="3.0" 
+                      value={complexity || ""} 
+                      onChange={(e) => setComplexity(Number(e.target.value))}
+                      className="pl-9"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Multiplicador (1 = Padrão)</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-border shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-lg">2. Custos Extras</CardTitle>
-              <Button size="sm" variant="outline" onClick={addCost} className="h-8">
-                <Plus className="w-4 h-4 mr-1.5" />
-                Adicionar Custo
-              </Button>
+          {/* Extra Costs */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-primary" />
+                  2. Custos Extras
+                </CardTitle>
+                <Button size="sm" variant="outline" onClick={addCost}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Adicionar
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {costsList.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6 text-center bg-muted/30 rounded-lg border border-dashed">
-                  <p className="text-sm text-muted-foreground mb-3">Nenhum custo extra lançado.</p>
+                <div className="flex flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border">
+                  <p className="text-sm text-muted-foreground mb-3">Nenhum custo extra adicionado</p>
                   <Button size="sm" variant="secondary" onClick={addCost}>
+                    <Plus className="h-4 w-4 mr-1.5" />
                     Adicionar primeiro custo
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {costsList.map((cost) => (
-                    <div key={cost.id} className="flex gap-3 items-start animate-in fade-in zoom-in-95 duration-200">
+                    <div key={cost.id} className="flex gap-3 items-start p-3 rounded-lg bg-muted/30">
                       <div className="flex-1 space-y-1.5">
-                        <Label className="text-xs sr-only">Descrição</Label>
                         <Input 
-                          placeholder="Ex: Domínio, Licença de Tema, Banco de Imagens..." 
+                          placeholder="Ex: Domínio, Licença, Banco de Imagens..." 
                           value={cost.name} 
-                          onChange={(e) => updateCost(cost.id, "name", e.target.value)} 
+                          onChange={(e) => updateCost(cost.id, "name", e.target.value)}
+                          className="bg-background"
                         />
                       </div>
-                      <div className="w-32 space-y-1.5">
-                        <Label className="text-xs sr-only">Valor (R$)</Label>
+                      <div className="w-36 space-y-1.5">
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
                           <Input 
                             type="number" 
                             step="0.01"
-                            className="pl-8"
+                            className="pl-8 bg-background"
                             placeholder="0,00"
                             value={cost.value || ""} 
                             onChange={(e) => updateCost(cost.id, "value", Number(e.target.value))} 
@@ -155,10 +192,10 @@ const Calculator = () => {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        className="shrink-0 hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => removeCost(cost.id)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
@@ -173,116 +210,128 @@ const Calculator = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">3. Modificadores</CardTitle>
+          {/* Modifiers */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <Percent className="h-4 w-4 text-primary" />
+                3. Modificadores
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <Label className="flex justify-between">
+                  <Label className="text-sm flex justify-between">
                     Margem de Lucro 
                     <span className="text-muted-foreground font-normal">%</span>
                   </Label>
-                  <Input 
-                    type="number" 
-                    step="1" 
-                    placeholder="Ex: 20"
-                    value={profitMargin || ""} 
-                    onChange={(e) => setProfitMargin(Number(e.target.value))} 
-                  />
+                  <div className="relative">
+                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      type="number" 
+                      step="1" 
+                      placeholder="20"
+                      value={profitMargin || ""} 
+                      onChange={(e) => setProfitMargin(Number(e.target.value))}
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex justify-between">
+                  <Label className="text-sm flex justify-between">
                     Impostos 
                     <span className="text-muted-foreground font-normal">%</span>
                   </Label>
-                  <Input 
-                    type="number" 
-                    step="0.1" 
-                    placeholder="Ex: 6.5"
-                    value={tax || ""} 
-                    onChange={(e) => setTax(Number(e.target.value))} 
-                  />
+                  <div className="relative">
+                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      type="number" 
+                      step="0.1" 
+                      placeholder="6.5"
+                      value={tax || ""} 
+                      onChange={(e) => setTax(Number(e.target.value))}
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex justify-between">
+                  <Label className="text-sm flex justify-between">
                     Desconto 
                     <span className="text-muted-foreground font-normal">R$</span>
                   </Label>
-                  <Input 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="0,00"
-                    value={discountValue || ""} 
-                    onChange={(e) => setDiscountValue(Number(e.target.value))} 
-                  />
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="0,00"
+                      value={discountValue || ""} 
+                      onChange={(e) => setDiscountValue(Number(e.target.value))}
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Resumo - Coluna Direita */}
+        {/* Summary - Right Column */}
         <div className="space-y-6">
-          <Card className="border-border shadow-lg sticky top-6 overflow-hidden">
-            <CardHeader className="bg-primary/5 pb-5 border-b">
-              <CardTitle className="text-lg flex items-center gap-2">
-                Resumo do Orçamento
-              </CardTitle>
+          <Card className="shadow-card sticky top-6">
+            <CardHeader className="pb-3 border-b">
+              <CardTitle className="text-base font-medium">Resumo do Orçamento</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="p-6 space-y-4 text-sm">
-                <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Horas ({hours}h × {complexity}x)</span>
-                  <span>{formatCurrency(basePrice)}</span>
+            <CardContent className="pt-4 space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Horas ({hours}h × {complexity}x)</span>
+                  <span className="font-medium">{formatCurrency(basePrice)}</span>
                 </div>
                 
                 {totalCosts > 0 && (
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span>Custos Extras ({costsList.length})</span>
-                    <span>{formatCurrency(totalCosts)}</span>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Custos Extras ({costsList.length})</span>
+                    <span className="font-medium">{formatCurrency(totalCosts)}</span>
                   </div>
                 )}
                 
-                <Separator className="my-2" />
+                <Separator />
                 
-                <div className="flex justify-between items-center font-medium bg-muted/50 p-2 rounded-md -mx-2 px-2">
+                <div className="flex justify-between items-center font-medium p-3 rounded-lg bg-muted/50">
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
 
                 {profitMargin > 0 && (
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span>Margem de Lucro ({profitMargin}%)</span>
-                    <span className="text-emerald-500 font-medium">+{formatCurrency(profitAmount)}</span>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Margem de Lucro ({profitMargin}%)</span>
+                    <span className="text-success font-medium">+{formatCurrency(profitAmount)}</span>
                   </div>
                 )}
 
                 {tax > 0 && (
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span>Impostos ({tax}%)</span>
-                    <span className="text-amber-500 font-medium">+{formatCurrency(taxAmount)}</span>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Impostos ({tax}%)</span>
+                    <span className="text-warning font-medium">+{formatCurrency(taxAmount)}</span>
                   </div>
                 )}
 
                 {totalDiscount > 0 && (
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span>Desconto</span>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Desconto</span>
                     <span className="text-destructive font-medium">-{formatCurrency(totalDiscount)}</span>
                   </div>
                 )}
               </div>
               
-              <div className="p-6 bg-primary text-primary-foreground border-t">
-                <p className="text-xs font-medium text-primary-foreground/80 mb-2 uppercase tracking-wider">
+              <div className="p-4 rounded-lg bg-primary text-primary-foreground">
+                <p className="text-xs font-medium text-primary-foreground/80 mb-1 uppercase tracking-wide">
                   Valor Sugerido
                 </p>
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl font-bold tracking-tight">
-                    {formatCurrency(suggestedPrice)}
-                  </span>
-                </div>
+                <p className="text-3xl font-bold">
+                  {formatCurrency(suggestedPrice)}
+                </p>
               </div>
             </CardContent>
           </Card>

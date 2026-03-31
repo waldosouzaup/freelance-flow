@@ -4,50 +4,132 @@
 
 @layer base {
   :root {
-    --background: 213 56% 11%;
-    --foreground: 210 40% 96%;
+    /* Google-inspired clean palette - Light Mode */
+    --background: 0 0% 98%;
+    --foreground: 220 15% 15%;
 
-    --card: 216 40% 15%;
-    --card-foreground: 210 40% 96%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
 
-    --popover: 216 40% 15%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 15%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Google Blue */
+    --primary: 214 90% 52%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 213 40% 20%;
-    --secondary-foreground: 210 40% 96%;
+    /* Secondary - Slate */
+    --secondary: 214 15% 93%;
+    --secondary-foreground: 220 15% 20%;
 
-    --muted: 213 30% 18%;
-    --muted-foreground: 215 20% 60%;
+    --muted: 214 15% 96%;
+    --muted-foreground: 220 10% 46%;
 
-    --accent: 213 30% 22%;
-    --accent-foreground: 210 40% 96%;
+    --accent: 214 15% 93%;
+    --accent-foreground: 220 15% 20%;
 
+    /* Status colors */
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 215 25% 22%;
-    --input: 215 25% 22%;
-    --ring: 217 91% 60%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --radius: 0.75rem;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
-    --sidebar-background: 213 56% 8%;
-    --sidebar-foreground: 210 40% 80%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 213 30% 15%;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 215 25% 18%;
-    --sidebar-ring: 217 91% 60%;
+    --info: 214 90% 52%;
+    --info-foreground: 0 0% 100%;
 
-    --chart-red: 0 84% 60%;
-    --chart-yellow: 45 93% 58%;
+    /* Borders and inputs */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 214 90% 52%;
+
+    /* Radius - softer rounded corners */
+    --radius: 8px;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 15% 35%;
+    --sidebar-primary: 214 90% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 15% 96%;
+    --sidebar-accent-foreground: 220 15% 20%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 214 90% 52%;
+
+    /* Chart colors - Google palette */
+    --chart-blue: 214 90% 52%;
     --chart-green: 142 71% 45%;
-    --chart-blue: 217 91% 60%;
+    --chart-yellow: 45 93% 58%;
+    --chart-red: 0 84% 60%;
     --chart-orange: 25 95% 53%;
+    --chart-purple: 262 83% 58%;
+    --chart-teal: 173 80% 45%;
+  }
+
+  .dark {
+    /* Google-inspired Dark Mode palette */
+    --background: 224 20% 10%;
+    --foreground: 210 20% 95%;
+
+    --card: 224 20% 13%;
+    --card-foreground: 210 20% 95%;
+
+    --popover: 224 20% 13%;
+    --popover-foreground: 210 20% 95%;
+
+    /* Primary - Google Blue (slightly brighter in dark) */
+    --primary: 214 90% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Dark slate */
+    --secondary: 220 15% 20%;
+    --secondary-foreground: 210 20% 95%;
+
+    --muted: 220 15% 18%;
+    --muted-foreground: 215 15% 60%;
+
+    --accent: 220 15% 20%;
+    --accent-foreground: 210 20% 95%;
+
+    /* Status colors */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 214 90% 60%;
+    --info-foreground: 0 0% 100%;
+
+    /* Borders and inputs */
+    --border: 220 15% 22%;
+    --input: 220 15% 22%;
+    --ring: 214 90% 60%;
+
+    /* Sidebar - Dark */
+    --sidebar-background: 224 20% 8%;
+    --sidebar-foreground: 210 20% 75%;
+    --sidebar-primary: 214 90% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 16%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 214 90% 60%;
+
+    /* Chart colors - adjusted for dark */
+    --chart-blue: 214 90% 60%;
+    --chart-green: 142 71% 50%;
+    --chart-yellow: 45 93% 60%;
+    --chart-red: 0 84% 60%;
+    --chart-orange: 25 95% 58%;
+    --chart-purple: 262 83% 65%;
+    --chart-teal: 173 80% 50%;
   }
 }
 
@@ -58,6 +140,44 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Google Sans', 'Roboto', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* Custom scrollbar - Google style */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(220 13% 85%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(220 13% 75%);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(220 15% 30%);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(220 15% 40%);
+}
+
+/* Selection */
+::selection {
+  background: hsl(214 90% 52% / 0.2);
+}
+
+.dark ::selection {
+  background: hsl(214 90% 60% / 0.3);
 }
