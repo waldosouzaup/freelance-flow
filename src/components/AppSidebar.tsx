@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, Users, Calculator, Settings, LogOut, DollarSign } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Users, Calculator, Settings, LogOut, DollarSign, UserCog } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
