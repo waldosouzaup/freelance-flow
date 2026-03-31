@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, Users, Calculator, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Users, Calculator, Settings, LogOut, DollarSign } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +21,7 @@ const navItems = [
   { title: "Projetos", url: "/projects", icon: FolderKanban },
   { title: "Clientes", url: "/clients", icon: Users },
   { title: "Calculadora", url: "/calculator", icon: Calculator },
+  { title: "Faturamento", url: "/billing", icon: DollarSign },
   { title: "Parâmetros", url: "/parameters", icon: Settings },
 ];
 
