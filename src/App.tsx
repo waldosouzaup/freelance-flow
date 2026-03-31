@@ -16,6 +16,7 @@ import ClientForm from "./pages/ClientForm";
 import Calculator from "./pages/Calculator";
 import Billing from "./pages/Billing";
 import Parameters from "./pages/Parameters";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
