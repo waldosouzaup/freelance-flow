@@ -1,69 +1,75 @@
 
 
-# Sistema de Gestão de Projetos para Freelancers
+# Melhorias na Aplicação — Faturamento, Confirmação de Exclusão e Dashboard Premium
 
-## Visão Geral
-Sistema dark theme para freelancers gerenciarem clientes, projetos, etapas e precificação, com dashboard analítico moderno.
+## 1. Painel de Faturamento
 
-## Design System
-- **Tema:** Dark — fundo `#0D1B2A` / `#1B263B`, cards coloridos (vermelho, amarelo, verde, azul, laranja)
-- **Tipografia:** Inter
-- **Componentes:** Botões arredondados azuis, cards com sombras suaves, gráficos vibrantes em fundo escuro
-- **Layout:** Desktop-first, responsivo
+**Nova página `/billing`** com visão financeira dos projetos:
+- Card destaque com valor total faturado (soma de todos os projetos concluídos)
+- Card com valor em andamento (projetos ativos)
+- Card com valor médio por projeto
+- Gráfico de barras: faturamento por mês (baseado na data de conclusão/criação)
+- Gráfico de pizza: distribuição de valores por cliente
+- Tabela resumo dos projetos com valores
 
-## Páginas
+**Sidebar**: adicionar item "Faturamento" com ícone `DollarSign` entre Calculadora e Parâmetros.
 
-### 1. Login
-- Email + senha com Supabase Auth
-- Tela dark minimalista, opção de criar conta
+**Rota**: `/billing` protegida no `App.tsx`.
 
-### 2. Dashboard
-- Cards coloridos: total projetos, projetos ativos, total clientes, próximos prazos
-- Gráficos: linha (evolução), barras (por status), pizza (por tipo)
-- Lista de projetos recentes
-- Atalhos: Novo Projeto, Novo Cliente, Calculadora
+Não requer mudanças no banco — usa os dados existentes da tabela `projects` (campo `value` e `status`).
 
-### 3. Projetos — Lista
-- Tabela dark com nome, cliente, status, prazo, ações
-- Filtros combinados: cliente, status, busca por nome
-- Ordenação padrão por prazo crescente
-- Botão "+ Novo Projeto"
+## 2. Confirmação de Exclusão (AlertDialog)
 
-### 4. Projetos — Criar/Editar
-- Formulário: nome, cliente (select), descrição, valor, prazo, links úteis
-- Status padrão "Em andamento"
-- Botões salvar/cancelar
+Adicionar `AlertDialog` antes de deletar em:
+- **ClientsList.tsx**: dialog "Tem certeza que deseja excluir este cliente?" com botões Cancelar/Excluir
+- **ProjectsList.tsx**: dialog "Tem certeza que deseja excluir este projeto?" com botões Cancelar/Excluir
 
-### 5. Projeto — Detalhes/Progresso
-- Card resumo do projeto
-- Campo de notas gerais
-- Checklist de etapas com adicionar/editar/excluir/marcar concluída
+Usar o componente `AlertDialog` já existente em `src/components/ui/alert-dialog.tsx`. Controlar estado com `useState` para armazenar o ID do item a ser deletado.
 
-### 6. Clientes — Lista
-- Tabela: nome, email, telefone, empresa
-- Busca por nome
-- Botão "+ Novo Cliente"
-- Proteção: não permitir exclusão se houver projetos vinculados
+## 3. Dashboard Premium Redesign
 
-### 7. Clientes — Criar/Editar
-- Formulário: nome, email, telefone, empresa, observações
-- Salvar/cancelar
+Reformular completamente o `Dashboard.tsx` com design premium:
 
-### 8. Calculadora de Precificação
-- Campos: valor/hora, horas estimadas, complexidade (multiplicador), custos extras
-- Card colorido com preço sugerido calculado em tempo real
+**Novas métricas** (cards superiores expandidos):
+- Total de Projetos
+- Projetos Ativos
+- Total de Clientes
+- Valor Total dos Projetos (soma de `value`)
+- Taxa de Conclusão (% de projetos concluídos)
+- Próximos Prazos (projetos com deadline nos próximos 7 dias)
 
-### 9. Parâmetros de Precificação
-- Valor/hora padrão, margem padrão, complexidade padrão
-- Salvar configurações (persiste por usuário no Supabase)
+**Layout premium**:
+- Cards com gradientes sutis e ícones maiores
+- Seção de welcome com saudação ao usuário ("Bem-vindo, [nome]")
+- Progress ring visual para taxa de conclusão
+- Cards com animação hover (scale + shadow)
+- Gráficos mantidos mas com visual refinado (cantos mais arredondados, tooltips melhorados)
+- Projetos recentes com barra de progresso das etapas inline
+- Atalhos rápidos com design de cards ao invés de botões simples
 
-## Backend (Supabase)
-- **Auth:** email + senha
-- **Tabelas:** profiles, clients, projects, project_stages, pricing_parameters
-- **RLS:** cada usuário acessa apenas seus dados
-- **Regras:** clientes com projetos não podem ser deletados; etapas com status concluída/pendente
+**Estrutura visual**:
+```text
+┌─────────────────────────────────────────────┐
+│  Bem-vindo, [Nome]         [Atalhos rápidos]│
+├──────┬──────┬──────┬──────┬──────┬──────────┤
+│ Total│Ativos│Client│Valor │Concl.│ Prazos   │
+├──────────────────┬──────────────────────────┤
+│ Barras (Status)  │ Linha (Evolução Mensal)  │
+├──────────────────┬──────────────────────────┤
+│ Pizza (Distrib.) │ Projetos Recentes + %    │
+└──────────────────┴──────────────────────────┘
+```
 
-## Navegação
-- Sidebar dark com ícones: Dashboard, Projetos, Clientes, Calculadora, Parâmetros
-- Rotas protegidas (redireciona para login se não autenticado)
+## Arquivos Afetados
+
+| Arquivo | Ação |
+|---------|------|
+| `src/pages/Billing.tsx` | Criar — painel de faturamento |
+| `src/pages/Dashboard.tsx` | Reescrever — design premium com novas métricas |
+| `src/pages/ClientsList.tsx` | Editar — adicionar AlertDialog de confirmação |
+| `src/pages/ProjectsList.tsx` | Editar — adicionar AlertDialog de confirmação |
+| `src/components/AppSidebar.tsx` | Editar — adicionar link Faturamento |
+| `src/App.tsx` | Editar — adicionar rota `/billing` |
+
+Nenhuma mudança no banco de dados necessária.
 
