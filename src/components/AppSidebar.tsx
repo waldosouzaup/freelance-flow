@@ -21,6 +21,7 @@ const navItems = [
   { title: "Projetos", url: "/projects", icon: FolderKanban },
   { title: "Clientes", url: "/clients", icon: Users },
   { title: "Calculadora", url: "/calculator", icon: Calculator },
+  { title: "Faturamento", url: "/billing", icon: DollarSign },
   { title: "Parâmetros", url: "/parameters", icon: Settings },
 ];
 

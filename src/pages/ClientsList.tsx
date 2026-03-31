@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,6 +13,7 @@ const ClientsList = () => {
   const { user } = useAuth();
   const [clients, setClients] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchClients = async () => {
     if (!user) return;
@@ -21,8 +23,9 @@ const ClientsList = () => {
 
   useEffect(() => { fetchClients(); }, [user]);
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("clients").delete().eq("id", id);
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("clients").delete().eq("id", deleteId);
     if (error) {
       if (error.message.includes("projetos vinculados")) {
         toast.error("Não é possível excluir um cliente com projetos vinculados");
@@ -33,6 +36,7 @@ const ClientsList = () => {
       toast.success("Cliente excluído");
       fetchClients();
     }
+    setDeleteId(null);
   };
 
   const filtered = clients.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
@@ -78,7 +82,7 @@ const ClientsList = () => {
                       <Button variant="ghost" size="icon" asChild>
                         <Link to={`/clients/${c.id}/edit`}><Pencil className="h-4 w-4" /></Link>
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
@@ -89,6 +93,23 @@ const ClientsList = () => {
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cliente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

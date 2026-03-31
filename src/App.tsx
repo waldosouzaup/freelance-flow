@@ -46,6 +46,7 @@ const AppRoutes = () => (
     <Route path="/clients/new" element={<ProtectedRoute><ClientForm /></ProtectedRoute>} />
     <Route path="/clients/:id/edit" element={<ProtectedRoute><ClientForm /></ProtectedRoute>} />
     <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
+    <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
     <Route path="/parameters" element={<ProtectedRoute><Parameters /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
