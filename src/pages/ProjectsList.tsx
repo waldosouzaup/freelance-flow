@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Pencil, Trash2, Eye, Search, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { analyzeProfitability, getProfitabilityLabel, getProfitabilityBadgeClasses } from "@/lib/profitability";
 
 const STATUS_LABELS: Record<string, string> = {
   em_andamento: "Em Andamento",
@@ -142,6 +143,7 @@ const ProjectsList = () => {
                   <TableHead className="font-medium">Nome</TableHead>
                   <TableHead className="font-medium">Cliente</TableHead>
                   <TableHead className="font-medium">Status</TableHead>
+                  <TableHead className="font-medium">Lucratividade</TableHead>
                   <TableHead className="font-medium">Prazo</TableHead>
                   <TableHead className="font-medium text-right">Ações</TableHead>
                 </TableRow>
@@ -149,7 +151,7 @@ const ProjectsList = () => {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
                       <div className="flex flex-col items-center gap-2">
                         <p>Nenhum projeto encontrado</p>
                         <Button asChild variant="outline" size="sm">
@@ -170,6 +172,21 @@ const ProjectsList = () => {
                         <span className={`text-xs px-2.5 py-1 rounded-full border ${STATUS_COLORS[p.status]}`}>
                           {STATUS_LABELS[p.status] || p.status}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const analysis = analyzeProfitability({
+                            estimatedRevenue: p.value,
+                            actualCosts: p.actual_costs,
+                            estimatedHours: p.estimated_hours,
+                            actualHours: p.actual_hours,
+                          });
+                          return (
+                            <span className={`text-xs px-2.5 py-1 rounded-full border ${getProfitabilityBadgeClasses(analysis.status)}`}>
+                              {getProfitabilityLabel(analysis.status)}
+                            </span>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         {p.deadline ? (

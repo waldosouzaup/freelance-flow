@@ -201,10 +201,13 @@ export type Database = {
       }
       projects: {
         Row: {
+          actual_costs: number | null
+          actual_hours: number | null
           client_id: string | null
           created_at: string
           deadline: string | null
           description: string | null
+          estimated_hours: number | null
           general_notes: string | null
           id: string
           links: string[] | null
@@ -215,10 +218,13 @@ export type Database = {
           value: number | null
         }
         Insert: {
+          actual_costs?: number | null
+          actual_hours?: number | null
           client_id?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
+          estimated_hours?: number | null
           general_notes?: string | null
           id?: string
           links?: string[] | null
@@ -229,10 +235,13 @@ export type Database = {
           value?: number | null
         }
         Update: {
+          actual_costs?: number | null
+          actual_hours?: number | null
           client_id?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
+          estimated_hours?: number | null
           general_notes?: string | null
           id?: string
           links?: string[] | null

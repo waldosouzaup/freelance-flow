@@ -7,9 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Pencil, Plus, Trash2, ExternalLink } from "lucide-react";
+import { Pencil, Plus, Trash2, ExternalLink, TrendingUp, DollarSign, Clock, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import {
+  analyzeProfitability,
+  formatCurrency,
+  formatHours,
+  formatRate,
+  getProfitabilityLabel,
+  getProfitabilityBadgeClasses,
+  getProfitabilityColor,
+} from "@/lib/profitability";
 
 const STATUS_LABELS: Record<string, string> = {
   em_andamento: "Em Andamento",
@@ -113,7 +122,7 @@ const ProjectDetails = () => {
             </span>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Valor</p>
+            <p className="text-xs text-muted-foreground">Receita Estimada</p>
             <p className="font-medium">R$ {project.value?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </div>
           <div>
@@ -122,6 +131,122 @@ const ProjectDetails = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Financial Analysis */}
+      {(() => {
+        const analysis = analyzeProfitability({
+          estimatedRevenue: project.value,
+          actualCosts: project.actual_costs,
+          estimatedHours: project.estimated_hours,
+          actualHours: project.actual_hours,
+        });
+
+        const hasFinancialData = project.value && project.value > 0;
+
+        if (!hasFinancialData) return null;
+
+        return (
+          <Card className="border-border">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  Análise Financeira
+                </CardTitle>
+                <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${getProfitabilityBadgeClasses(analysis.status)}`}>
+                  {getProfitabilityLabel(analysis.status)}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {analysis.status === 'insufficient_data' ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <Clock className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">Dados insuficientes para análise</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Registre as horas reais e custos para ver a lucratividade.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Key Metrics Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-3 rounded-lg bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">Receita Estimada</p>
+                      <p className="text-lg font-bold">{formatCurrency(project.value || 0)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">Custos Reais</p>
+                      <p className="text-lg font-bold">{formatCurrency(project.actual_costs || 0)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">Lucro Real</p>
+                      <p className={`text-lg font-bold ${analysis.profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        {formatCurrency(analysis.profit)}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-1">Valor/Hora Real</p>
+                      <p className={`text-lg font-bold ${getProfitabilityColor(analysis.status)}`}>
+                        {formatRate(analysis.realHourRate)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Hours Comparison */}
+                  {(project.estimated_hours || project.actual_hours) && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Comparativo de Horas</p>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Estimado</span>
+                          <span className="font-medium">{formatHours(project.estimated_hours)}</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary/40 rounded-full" style={{ width: '100%' }} />
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Real</span>
+                          <span className="font-medium">{formatHours(project.actual_hours)}</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              project.actual_hours && project.estimated_hours && project.actual_hours > project.estimated_hours
+                                ? 'bg-warning'
+                                : 'bg-success'
+                            }`}
+                            style={{
+                              width: project.estimated_hours && project.actual_hours
+                                ? `${Math.min((project.actual_hours / project.estimated_hours) * 100, 100)}%`
+                                : '0%',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Rate Comparison */}
+                  {analysis.estimatedHourRate && analysis.realHourRate && (
+                    <div className="flex items-center gap-3 p-3 rounded-lg border border-border text-sm">
+                      <TrendingUp className={`h-4 w-4 shrink-0 ${getProfitabilityColor(analysis.status)}`} />
+                      <div>
+                        <span className="text-muted-foreground">Valor/hora estimado: </span>
+                        <span className="font-medium">{formatRate(analysis.estimatedHourRate)}</span>
+                        <span className="text-muted-foreground"> → Real: </span>
+                        <span className={`font-semibold ${getProfitabilityColor(analysis.status)}`}>
+                          {formatRate(analysis.realHourRate)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {project.description && (
         <Card className="border-border">

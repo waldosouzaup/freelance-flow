@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical, ListChecks } from "lucide-react";
+import { Plus, Trash2, GripVertical, ListChecks, DollarSign, Clock, TrendingUp } from "lucide-react";
 
 interface Stage {
   id: string;
@@ -35,6 +35,11 @@ const ProjectForm = () => {
   const [links, setLinks] = useState("");
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Financial fields
+  const [estimatedHours, setEstimatedHours] = useState("");
+  const [actualHours, setActualHours] = useState("");
+  const [actualCosts, setActualCosts] = useState("");
   
   // Stages/Tasks
   const [stages, setStages] = useState<Stage[]>([]);
@@ -53,6 +58,9 @@ const ProjectForm = () => {
           setDeadline(data.deadline || "");
           setStatus(data.status);
           setLinks(data.links?.join("\n") || "");
+          setEstimatedHours(data.estimated_hours?.toString() || "");
+          setActualHours(data.actual_hours?.toString() || "");
+          setActualCosts(data.actual_costs?.toString() || "");
         }
       });
       // Load existing stages
@@ -162,6 +170,9 @@ const ProjectForm = () => {
       deadline: deadline || null,
       status: status as any,
       links: links ? links.split("\n").filter(Boolean) : [],
+      estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
+      actual_hours: actualHours ? parseFloat(actualHours) : null,
+      actual_costs: actualCosts ? parseFloat(actualCosts) : 0,
     };
 
     let projectId = id;
@@ -220,7 +231,7 @@ const ProjectForm = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Valor (R$)</Label>
+                <Label>Receita Estimada (R$)</Label>
                 <Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} />
               </div>
               <div className="space-y-2">
@@ -245,6 +256,64 @@ const ProjectForm = () => {
             <div className="space-y-2">
               <Label>Links úteis (um por linha)</Label>
               <Textarea value={links} onChange={(e) => setLinks(e.target.value)} placeholder="https://..." />
+            </div>
+
+            {/* Financial Data Section */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <Label className="text-base font-medium">Dados Financeiros</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Registre horas e custos para acompanhar a lucratividade do projeto.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    Horas Estimadas
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="Ex: 40"
+                    value={estimatedHours}
+                    onChange={(e) => setEstimatedHours(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    Horas Reais
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="Ex: 52"
+                    value={actualHours}
+                    onChange={(e) => setActualHours(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label className="text-sm flex items-center gap-1.5">
+                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                    Custos Reais (R$)
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0,00"
+                    value={actualCosts}
+                    onChange={(e) => setActualCosts(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Inclua todos os custos operacionais: ferramentas, licenças, terceiros, etc.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Tasks/Stages Section */}

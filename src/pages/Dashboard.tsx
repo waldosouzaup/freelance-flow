@@ -17,6 +17,8 @@ import {
   Calendar,
   BarChart3,
   TrendingUp,
+  TrendingDown,
+  AlertTriangle,
   PieChart as PieChartIcon,
   Activity,
 } from "lucide-react";
@@ -38,6 +40,14 @@ import {
 } from "recharts";
 import { format, isAfter, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  analyzeProfitability,
+  formatCurrency as formatCurrencyUtil,
+  formatRate,
+  getProfitabilityLabel,
+  getProfitabilityBadgeClasses,
+  type ProfitabilityStatus,
+} from "@/lib/profitability";
 
 const STATUS_LABELS: Record<string, string> = {
   em_andamento: "Em Andamento",
@@ -170,7 +180,7 @@ const Dashboard = () => {
   };
 
   const formatCurrency = (value: number) =>
-    value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    formatCurrencyUtil(value);
 
   const tooltipStyle = {
     backgroundColor: "hsl(var(--card))",
@@ -466,6 +476,111 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Row 3.5: Profitability Summary */}
+      {(() => {
+        const profitabilityStats = projects.reduce(
+          (acc, p) => {
+            const analysis = analyzeProfitability({
+              estimatedRevenue: p.value,
+              actualCosts: p.actual_costs,
+              estimatedHours: p.estimated_hours,
+              actualHours: p.actual_hours,
+            });
+
+            if (analysis.status === 'insufficient_data') return acc;
+
+            acc.total++;
+            if (analysis.status === 'healthy') acc.healthy++;
+            if (analysis.status === 'warning') acc.warning++;
+            if (analysis.status === 'loss') acc.loss++;
+            if (analysis.realHourRate !== null) {
+              acc.rateSum += analysis.realHourRate;
+              acc.rateCount++;
+            }
+            return acc;
+          },
+          { total: 0, healthy: 0, warning: 0, loss: 0, rateSum: 0, rateCount: 0 }
+        );
+
+        const avgRate = profitabilityStats.rateCount > 0
+          ? profitabilityStats.rateSum / profitabilityStats.rateCount
+          : 0;
+
+        if (profitabilityStats.total === 0) return null;
+
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Projetos Lucrativos</p>
+                    <p className="text-3xl font-bold text-success">{profitabilityStats.healthy}</p>
+                    <p className="text-xs text-muted-foreground">
+                      de {profitabilityStats.total} com dados
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-success/10 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-success" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Em Atenção</p>
+                    <p className="text-3xl font-bold text-warning">{profitabilityStats.warning}</p>
+                    <p className="text-xs text-muted-foreground">
+                      lucratividade reduzida
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-warning/10 flex items-center justify-center">
+                    <AlertTriangle className="h-6 w-6 text-warning" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Em Prejuízo</p>
+                    <p className="text-3xl font-bold text-destructive">{profitabilityStats.loss}</p>
+                    <p className="text-xs text-muted-foreground">
+                      custos acima da receita
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-destructive/10 flex items-center justify-center">
+                    <TrendingDown className="h-6 w-6 text-destructive" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Média Valor/Hora Real</p>
+                    <p className="text-3xl font-bold">{formatRate(avgRate)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {profitabilityStats.rateCount} projeto(s) com dados
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-info/10 flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-info" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
 
       {/* Row 4: Completion Radial + Deadlines */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
