@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,21 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Calculator as CalculatorIcon,
   Plus,
   Trash2,
@@ -36,9 +51,12 @@ import {
   Check,
   CalendarDays,
   FileText,
+  History,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { generateBudgetPdf, type BudgetData } from "@/lib/generateBudgetPdf";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +71,24 @@ interface ClientOption {
   name: string;
   email: string | null;
 }
+
+interface BudgetRecord {
+  id: string;
+  budget_number: string;
+  status: string;
+  client_name: string;
+  client_email: string | null;
+  project_name: string;
+  total_value: number;
+  budget_data: BudgetData;
+  created_at: string;
+}
+
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  aguardando: { label: "Aguardando", className: "bg-warning/10 text-warning" },
+  aprovado: { label: "Aprovado", className: "bg-success/10 text-success" },
+  cancelado: { label: "Cancelado", className: "bg-destructive/10 text-destructive" },
+};
 
 const Calculator = () => {
   const { user } = useAuth();
@@ -74,6 +110,8 @@ const Calculator = () => {
   // Profile
   const [freelancerName, setFreelancerName] = useState("");
   const [freelancerEmail, setFreelancerEmail] = useState("");
+  const [freelancerPhone, setFreelancerPhone] = useState("");
+  const [freelancerWebsite, setFreelancerWebsite] = useState("");
 
   // Base
   const [hourlyRate, setHourlyRate] = useState(100);
@@ -88,11 +126,27 @@ const Calculator = () => {
   const [tax, setTax] = useState(0);
   const [discountValue, setDiscountValue] = useState(0);
 
+  // Budget history
+  const [budgetHistory, setBudgetHistory] = useState<BudgetRecord[]>([]);
+
+  // Fetch budget history
+  const fetchBudgetHistory = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("budgets")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (data) {
+      setBudgetHistory(data.map((b) => ({ ...b, budget_data: b.budget_data as unknown as BudgetData })));
+    }
+  }, [user]);
+
   // Fetch initial data
   useEffect(() => {
     if (!user) return;
 
-    // Pricing parameters
     supabase
       .from("pricing_parameters")
       .select("*")
@@ -105,7 +159,6 @@ const Calculator = () => {
         }
       });
 
-    // Clients
     supabase
       .from("clients")
       .select("id, name, email")
@@ -115,20 +168,23 @@ const Calculator = () => {
         setClients(data || []);
       });
 
-    // Profile
     supabase
       .from("profiles")
-      .select("display_name")
+      .select("display_name, company_name, phone, website")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.display_name) setFreelancerName(data.display_name);
+        if (data) {
+          setFreelancerName(data.company_name || data.display_name || "");
+          setFreelancerPhone(data.phone || "");
+          setFreelancerWebsite(data.website || "");
+        }
       });
 
     setFreelancerEmail(user.email || "");
-  }, [user]);
+    fetchBudgetHistory();
+  }, [user, fetchBudgetHistory]);
 
-  // Generate budget number preview
   useEffect(() => {
     const year = new Date().getFullYear();
     setBudgetNumber(`ORC-${year}-...`);
@@ -150,15 +206,11 @@ const Calculator = () => {
   const basePrice = hourlyRate * hours * complexity;
   const totalCosts = costsList.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
   const subtotal = basePrice + totalCosts;
-
   const profitAmount = subtotal * (profitMargin / 100);
   const subtotalWithProfit = subtotal + profitAmount;
-
   const taxAmount = subtotalWithProfit * (tax / 100);
   const subtotalWithTaxes = subtotalWithProfit + taxAmount;
-
   const totalDiscount = Number(discountValue) || 0;
-
   const suggestedPrice = Math.max(0, subtotalWithTaxes - totalDiscount);
 
   const formatCurrency = (val: number) =>
@@ -179,6 +231,38 @@ const Calculator = () => {
 
   const canGeneratePdf = clientName.trim() && projectName.trim();
 
+  const buildBudgetData = (finalBudgetNumber: string): BudgetData => {
+    const today = new Date();
+    const validity = addDays(today, validityDays);
+    return {
+      budgetNumber: finalBudgetNumber,
+      date: format(today, "dd/MM/yyyy"),
+      validityDate: format(validity, "dd/MM/yyyy"),
+      freelancerName,
+      freelancerEmail,
+      freelancerPhone,
+      freelancerWebsite,
+      clientName: clientName.trim(),
+      clientEmail: clientEmail.trim(),
+      projectName: projectName.trim(),
+      hourlyRate,
+      hours,
+      complexity,
+      basePrice,
+      costs: costsList.filter((c) => c.name && c.value > 0),
+      totalCosts,
+      subtotal,
+      profitMargin,
+      profitAmount,
+      tax,
+      taxAmount,
+      discount: totalDiscount,
+      total: suggestedPrice,
+      paymentConditions: paymentConditions.trim(),
+      notes: notes.trim(),
+    };
+  };
+
   const handleGeneratePdf = async () => {
     if (!user || !canGeneratePdf) {
       toast.error("Preencha o nome do cliente e do projeto para gerar o orçamento.");
@@ -188,7 +272,6 @@ const Calculator = () => {
     setGeneratingPdf(true);
 
     try {
-      // Get next budget number from Supabase
       const year = new Date().getFullYear();
       const { data: rpcData, error } = await supabase.rpc("get_next_budget_number", {
         p_user_id: user.id,
@@ -197,52 +280,55 @@ const Calculator = () => {
 
       let finalBudgetNumber: string;
       if (error || rpcData == null) {
-        // Fallback: timestamp-based if RPC not yet deployed
         const fallback = Date.now().toString(36).toUpperCase().slice(-4);
         finalBudgetNumber = `ORC-${year}-${fallback}`;
-        console.warn("budget_counter RPC not available, using fallback:", error?.message);
       } else {
         finalBudgetNumber = `ORC-${year}-${String(rpcData).padStart(3, "0")}`;
       }
 
       setBudgetNumber(finalBudgetNumber);
 
-      const today = new Date();
-      const validity = addDays(today, validityDays);
-
-      const budgetData: BudgetData = {
-        budgetNumber: finalBudgetNumber,
-        date: format(today, "dd/MM/yyyy"),
-        validityDate: format(validity, "dd/MM/yyyy"),
-        freelancerName,
-        freelancerEmail,
-        clientName: clientName.trim(),
-        clientEmail: clientEmail.trim(),
-        projectName: projectName.trim(),
-        hourlyRate,
-        hours,
-        complexity,
-        basePrice,
-        costs: costsList.filter((c) => c.name && c.value > 0),
-        totalCosts,
-        subtotal,
-        profitMargin,
-        profitAmount,
-        tax,
-        taxAmount,
-        discount: totalDiscount,
-        total: suggestedPrice,
-        paymentConditions: paymentConditions.trim(),
-        notes: notes.trim(),
-      };
+      const budgetData = buildBudgetData(finalBudgetNumber);
 
       generateBudgetPdf(budgetData);
-      toast.success(`Orçamento ${finalBudgetNumber} gerado com sucesso!`);
+
+      // Save to database
+      await supabase.from("budgets").insert({
+        user_id: user.id,
+        budget_number: finalBudgetNumber,
+        client_name: budgetData.clientName,
+        client_email: budgetData.clientEmail || null,
+        project_name: budgetData.projectName,
+        total_value: budgetData.total,
+        budget_data: budgetData as unknown as Record<string, unknown>,
+      });
+
+      toast.success(`Orçamento ${finalBudgetNumber} gerado e salvo!`);
+      fetchBudgetHistory();
     } catch (err) {
       console.error("PDF generation error:", err);
       toast.error("Erro ao gerar o PDF do orçamento.");
     } finally {
       setGeneratingPdf(false);
+    }
+  };
+
+  const handleRegeneratePdf = (record: BudgetRecord) => {
+    generateBudgetPdf(record.budget_data);
+    toast.success(`PDF do orçamento ${record.budget_number} baixado!`);
+  };
+
+  const handleUpdateStatus = async (budgetId: string, newStatus: string) => {
+    const { error } = await supabase
+      .from("budgets")
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq("id", budgetId);
+
+    if (error) {
+      toast.error("Erro ao atualizar status");
+    } else {
+      toast.success("Status atualizado!");
+      fetchBudgetHistory();
     }
   };
 
@@ -521,7 +607,6 @@ const Calculator = () => {
                       </Button>
                     </div>
                   ))}
-
                   <div className="flex justify-end pt-2">
                     <p className="text-sm font-medium">
                       Subtotal Extras: <span className="text-primary">{formatCurrency(totalCosts)}</span>
@@ -656,7 +741,6 @@ const Calculator = () => {
                 </p>
               </div>
 
-              {/* Budget number preview */}
               <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
                 <span>Nº Orçamento</span>
                 <span className="font-mono">{budgetNumber}</span>
@@ -664,7 +748,6 @@ const Calculator = () => {
 
               <Separator />
 
-              {/* Generate PDF Button */}
               <Button
                 className="w-full"
                 size="lg"
@@ -684,6 +767,105 @@ const Calculator = () => {
           </Card>
         </div>
       </div>
+
+      {/* Budget History */}
+      <Card className="shadow-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              Histórico de Orçamentos
+            </CardTitle>
+            <span className="text-xs text-muted-foreground">{budgetHistory.length} orçamento(s)</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {budgetHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <History className="h-8 w-8 text-muted-foreground/40 mb-3" />
+              <p className="text-sm text-muted-foreground">Nenhum orçamento gerado ainda</p>
+              <p className="text-xs text-muted-foreground mt-1">Preencha os campos acima e gere seu primeiro orçamento.</p>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-medium">Nº</TableHead>
+                    <TableHead className="font-medium">Cliente</TableHead>
+                    <TableHead className="font-medium">Projeto</TableHead>
+                    <TableHead className="font-medium text-right">Valor</TableHead>
+                    <TableHead className="font-medium">Status</TableHead>
+                    <TableHead className="font-medium">Data</TableHead>
+                    <TableHead className="font-medium text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {budgetHistory.map((budget) => {
+                    const statusCfg = STATUS_CONFIG[budget.status] || STATUS_CONFIG.aguardando;
+                    return (
+                      <TableRow key={budget.id} className="hover:bg-muted/30">
+                        <TableCell className="font-mono text-sm">{budget.budget_number}</TableCell>
+                        <TableCell className="font-medium">{budget.client_name}</TableCell>
+                        <TableCell>{budget.project_name}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(Number(budget.total_value))}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={budget.status}
+                            onValueChange={(val) => handleUpdateStatus(budget.id, val)}
+                          >
+                            <SelectTrigger className="h-7 w-[130px] border-0 bg-transparent p-0">
+                              <span className={`text-xs px-2.5 py-1 rounded-full ${statusCfg.className}`}>
+                                {statusCfg.label}
+                              </span>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="aguardando">
+                                <span className="flex items-center gap-2">
+                                  <span className="h-2 w-2 rounded-full bg-warning" />
+                                  Aguardando
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="aprovado">
+                                <span className="flex items-center gap-2">
+                                  <span className="h-2 w-2 rounded-full bg-success" />
+                                  Aprovado
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="cancelado">
+                                <span className="flex items-center gap-2">
+                                  <span className="h-2 w-2 rounded-full bg-destructive" />
+                                  Cancelado
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(budget.created_at), "dd/MM/yy", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleRegeneratePdf(budget)}
+                            title="Baixar PDF novamente"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

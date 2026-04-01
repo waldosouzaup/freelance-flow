@@ -7,6 +7,8 @@ export interface BudgetData {
 
   freelancerName: string;
   freelancerEmail: string;
+  freelancerPhone: string;
+  freelancerWebsite: string;
 
   clientName: string;
   clientEmail: string;
@@ -59,19 +61,30 @@ export function generateBudgetPdf(data: BudgetData): void {
 
   // ─── HEADER BAR ───
   doc.setFillColor(...COLORS.dark);
-  doc.rect(0, 0, pageWidth, 42, "F");
+  doc.rect(0, 0, pageWidth, 48, "F");
 
-  // Freelancer name
+  // Freelancer/Company name
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(...COLORS.white);
-  doc.text(data.freelancerName || "FreelanceFlow", margin, 18);
+  doc.text(data.freelancerName || "FreelanceFlow", margin, 16);
 
-  // Freelancer email
+  // Contact details (left)
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setTextColor(...COLORS.muted);
-  doc.text(data.freelancerEmail || "", margin, 25);
+  let contactY = 23;
+  if (data.freelancerEmail) {
+    doc.text(data.freelancerEmail, margin, contactY);
+    contactY += 5;
+  }
+  if (data.freelancerPhone) {
+    doc.text(data.freelancerPhone, margin, contactY);
+    contactY += 5;
+  }
+  if (data.freelancerWebsite) {
+    doc.text(data.freelancerWebsite, margin, contactY);
+  }
 
   // Budget number & dates (right-aligned)
   doc.setFont("helvetica", "bold");
@@ -87,9 +100,9 @@ export function generateBudgetPdf(data: BudgetData): void {
 
   // Accent line
   doc.setFillColor(...COLORS.accent);
-  doc.rect(0, 42, pageWidth, 1.5, "F");
+  doc.rect(0, 48, pageWidth, 1.5, "F");
 
-  y = 54;
+  y = 60;
 
   // ─── CLIENT & PROJECT SECTION ───
   doc.setFillColor(...COLORS.light);

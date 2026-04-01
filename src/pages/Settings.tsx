@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera, Save, User, Settings as SettingsIcon, Mail } from "lucide-react";
+import { Camera, Save, User, Settings as SettingsIcon, Mail, Building, Phone, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 const Settings = () => {
@@ -14,6 +14,9 @@ const Settings = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [website, setWebsite] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -28,6 +31,9 @@ const Settings = () => {
       if (data) {
         setDisplayName(data.display_name || "");
         setAvatarUrl(data.avatar_url);
+        setCompanyName(data.company_name || "");
+        setPhone(data.phone || "");
+        setWebsite(data.website || "");
       }
     };
     fetchProfile();
@@ -85,7 +91,12 @@ const Settings = () => {
     setLoading(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ display_name: displayName })
+      .update({
+        display_name: displayName,
+        company_name: companyName || null,
+        phone: phone || null,
+        website: website || null,
+      })
       .eq("user_id", user.id);
 
     if (error) {
@@ -113,6 +124,7 @@ const Settings = () => {
         </div>
       </div>
 
+      {/* Profile Card */}
       <Card className="shadow-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-medium flex items-center gap-2">
@@ -167,22 +179,82 @@ const Settings = () => {
               <Mail className="h-4 w-4 text-muted-foreground" />
               Email
             </Label>
-            <Input 
-              value={user?.email || ""} 
-              disabled 
-              className="max-w-sm opacity-60" 
+            <Input
+              value={user?.email || ""}
+              disabled
+              className="max-w-sm opacity-60"
             />
             <p className="text-xs text-muted-foreground">O email não pode ser alterado.</p>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="pt-4 border-t">
-            <Button onClick={handleSave} disabled={loading} className="min-w-32">
-              <Save className="h-4 w-4 mr-2" />
-              {loading ? "Salvando..." : "Salvar Alterações"}
-            </Button>
+      {/* Company Card */}
+      <Card className="shadow-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Building className="h-4 w-4 text-primary" />
+            Dados da Empresa
+          </CardTitle>
+          <CardDescription>
+            Informações exibidas no cabeçalho dos seus orçamentos em PDF
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Company Name */}
+          <div className="space-y-2">
+            <Label htmlFor="companyName" className="text-sm font-medium">Nome da Empresa</Label>
+            <div className="relative max-w-sm">
+              <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="companyName"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="Sua empresa ou nome fantasia"
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          {/* Phone */}
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="text-sm font-medium">Telefone</Label>
+            <div className="relative max-w-sm">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(00) 00000-0000"
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          {/* Website */}
+          <div className="space-y-2">
+            <Label htmlFor="website" className="text-sm font-medium">Website</Label>
+            <div className="relative max-w-sm">
+              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://seusite.com.br"
+                className="pl-9"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={loading} className="min-w-40">
+          <Save className="h-4 w-4 mr-2" />
+          {loading ? "Salvando..." : "Salvar Todas as Alterações"}
+        </Button>
+      </div>
     </div>
   );
 };
