@@ -90,17 +90,33 @@ const Login = () => {
               {loading ? "Aguarde..." : isSignUp ? "Criar Conta" : "Entrar"}
             </Button>
           </form>
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              onClick={() => setIsSignUp(!isSignUp)}
-            >
-              {isSignUp ? "Já tem conta? Faça login" : "Não tem conta? Cadastre-se"}
-            </button>
+          <div className="mt-6 text-center pt-6 border-t border-border/50">
+            <p className="text-sm text-muted-foreground">
+              {isSignUp ? "Já tem conta?" : "Não tem conta?"}{" "}
+              <button
+                type="button"
+                className="font-semibold text-primary hover:underline transition-all"
+                onClick={() => setIsSignUp(!isSignUp)}
+              >
+                {isSignUp ? "Faça login" : "Cadastre-se"}
+              </button>
+            </p>
           </div>
         </CardContent>
       </Card>
+      <div className="absolute bottom-6 w-full text-center">
+        <p className="text-sm text-muted-foreground">
+          Desenvolvido por:{" "}
+          <a 
+            href="https://waldoeller.com/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="font-medium text-foreground hover:text-primary hover:underline transition-all"
+          >
+            Waldo Eller
+          </a>
+        </p>
+      </div>
     </div>
   );
 };

@@ -19,6 +19,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <main className="flex-1 p-6 overflow-auto">
             {children}
           </main>
+          <footer className="h-14 border-t border-border flex items-center justify-center bg-card/50 px-4">
+            <p className="text-sm text-muted-foreground">
+              Desenvolvido por:{" "}
+              <a 
+                href="https://waldoeller.com/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="font-medium text-foreground hover:text-primary hover:underline transition-all"
+              >
+                Waldo Eller
+              </a>
+            </p>
+          </footer>
         </div>
       </div>
     </SidebarProvider>
