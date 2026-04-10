@@ -338,7 +338,7 @@ const Calculator = () => {
         client_email: budgetData.clientEmail || null,
         project_name: budgetData.projectName,
         total_value: budgetData.total,
-        budget_data: budgetData as unknown as Record<string, unknown>,
+        budget_data: JSON.parse(JSON.stringify(budgetData)),
       }]);
 
       toast.success(`Orçamento ${finalBudgetNumber} gerado e salvo!`);
