@@ -53,6 +53,9 @@ import {
   FileText,
   History,
   RefreshCw,
+  Wrench,
+  Repeat,
+  PackagePlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -60,10 +63,13 @@ import { ptBR } from "date-fns/locale";
 import { generateBudgetPdf, type BudgetData } from "@/lib/generateBudgetPdf";
 import { cn } from "@/lib/utils";
 
+type CostCategory = "setup" | "mensal" | "extra";
+
 interface CostItem {
   id: string;
   name: string;
   value: number;
+  category: CostCategory;
 }
 
 interface ClientOption {
@@ -88,6 +94,12 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   aguardando: { label: "Aguardando", className: "bg-warning/10 text-warning" },
   aprovado: { label: "Aprovado", className: "bg-success/10 text-success" },
   cancelado: { label: "Cancelado", className: "bg-destructive/10 text-destructive" },
+};
+
+const CATEGORY_CONFIG: Record<CostCategory, { label: string; icon: typeof Wrench; color: string }> = {
+  setup: { label: "Setup Inicial", icon: Wrench, color: "text-blue-400" },
+  mensal: { label: "Custo Fixo Mensal", icon: Repeat, color: "text-emerald-400" },
+  extra: { label: "Custo Extra", icon: PackagePlus, color: "text-amber-400" },
 };
 
 const Calculator = () => {
@@ -118,7 +130,7 @@ const Calculator = () => {
   const [hours, setHours] = useState(40);
   const [complexity, setComplexity] = useState(1.0);
 
-  // Costs
+  // Costs - now with categories
   const [costsList, setCostsList] = useState<CostItem[]>([]);
 
   // Modifiers
@@ -190,8 +202,8 @@ const Calculator = () => {
     setBudgetNumber(`ORC-${year}-...`);
   }, []);
 
-  const addCost = () => {
-    setCostsList([...costsList, { id: crypto.randomUUID(), name: "", value: 0 }]);
+  const addCost = (category: CostCategory) => {
+    setCostsList([...costsList, { id: crypto.randomUUID(), name: "", value: 0, category }]);
   };
 
   const removeCost = (id: string) => {
@@ -202,9 +214,18 @@ const Calculator = () => {
     setCostsList(costsList.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
   };
 
+  // Grouped costs
+  const setupCosts = costsList.filter((c) => c.category === "setup");
+  const mensalCosts = costsList.filter((c) => c.category === "mensal");
+  const extraCosts = costsList.filter((c) => c.category === "extra");
+
+  const totalSetup = setupCosts.reduce((acc, c) => acc + (Number(c.value) || 0), 0);
+  const totalMensal = mensalCosts.reduce((acc, c) => acc + (Number(c.value) || 0), 0);
+  const totalExtra = extraCosts.reduce((acc, c) => acc + (Number(c.value) || 0), 0);
+
   // Calculations
   const basePrice = hourlyRate * hours * complexity;
-  const totalCosts = costsList.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+  const totalCosts = totalSetup + totalMensal + totalExtra;
   const subtotal = basePrice + totalCosts;
   const profitAmount = subtotal * (profitMargin / 100);
   const subtotalWithProfit = subtotal + profitAmount;
@@ -249,7 +270,13 @@ const Calculator = () => {
       hours,
       complexity,
       basePrice,
-      costs: costsList.filter((c) => c.name && c.value > 0),
+      setupCosts: setupCosts.filter((c) => c.name && c.value > 0).map(({ name, value }) => ({ name, value })),
+      mensalCosts: mensalCosts.filter((c) => c.name && c.value > 0).map(({ name, value }) => ({ name, value })),
+      extraCosts: extraCosts.filter((c) => c.name && c.value > 0).map(({ name, value }) => ({ name, value })),
+      costs: costsList.filter((c) => c.name && c.value > 0).map(({ name, value }) => ({ name, value })),
+      totalSetup,
+      totalMensal,
+      totalExtra,
       totalCosts,
       subtotal,
       profitMargin,
@@ -263,6 +290,31 @@ const Calculator = () => {
     };
   };
 
+  const getNextBudgetNumber = async (): Promise<string> => {
+    if (!user) return `ORC-${new Date().getFullYear()}-001`;
+    const year = new Date().getFullYear();
+    const prefix = `ORC-${year}-`;
+
+    // Count existing budgets for this year to determine next number
+    const { data, error } = await supabase
+      .from("budgets")
+      .select("budget_number")
+      .eq("user_id", user.id)
+      .like("budget_number", `${prefix}%`);
+
+    if (error || !data) {
+      const fallback = Date.now().toString(36).toUpperCase().slice(-4);
+      return `${prefix}${fallback}`;
+    }
+
+    const maxNum = data.reduce((max, b) => {
+      const match = b.budget_number.match(/(\d+)$/);
+      return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, 0);
+
+    return `${prefix}${String(maxNum + 1).padStart(3, "0")}`;
+  };
+
   const handleGeneratePdf = async () => {
     if (!user || !canGeneratePdf) {
       toast.error("Preencha o nome do cliente e do projeto para gerar o orçamento.");
@@ -272,28 +324,14 @@ const Calculator = () => {
     setGeneratingPdf(true);
 
     try {
-      const year = new Date().getFullYear();
-      const { data: rpcData, error } = await supabase.rpc("get_next_budget_number", {
-        p_user_id: user.id,
-        p_year: year,
-      });
-
-      let finalBudgetNumber: string;
-      if (error || rpcData == null) {
-        const fallback = Date.now().toString(36).toUpperCase().slice(-4);
-        finalBudgetNumber = `ORC-${year}-${fallback}`;
-      } else {
-        finalBudgetNumber = `ORC-${year}-${String(rpcData).padStart(3, "0")}`;
-      }
-
+      const finalBudgetNumber = await getNextBudgetNumber();
       setBudgetNumber(finalBudgetNumber);
 
       const budgetData = buildBudgetData(finalBudgetNumber);
-
       generateBudgetPdf(budgetData);
 
       // Save to database
-      await supabase.from("budgets").insert({
+      await supabase.from("budgets").insert([{
         user_id: user.id,
         budget_number: finalBudgetNumber,
         client_name: budgetData.clientName,
@@ -301,7 +339,7 @@ const Calculator = () => {
         project_name: budgetData.projectName,
         total_value: budgetData.total,
         budget_data: budgetData as unknown as Record<string, unknown>,
-      });
+      }]);
 
       toast.success(`Orçamento ${finalBudgetNumber} gerado e salvo!`);
       fetchBudgetHistory();
@@ -330,6 +368,77 @@ const Calculator = () => {
       toast.success("Status atualizado!");
       fetchBudgetHistory();
     }
+  };
+
+  // Render a cost category section
+  const renderCostSection = (
+    category: CostCategory,
+    items: CostItem[],
+    total: number
+  ) => {
+    const config = CATEGORY_CONFIG[category];
+    const Icon = config.icon;
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon className={cn("h-4 w-4", config.color)} />
+            <span className="text-sm font-medium">{config.label}</span>
+            <span className="text-xs text-muted-foreground">({items.length})</span>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => addCost(category)} className="h-7 text-xs">
+            <Plus className="h-3 w-3 mr-1" />
+            Adicionar
+          </Button>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="flex items-center justify-center py-4 text-center rounded-lg border border-dashed border-border">
+            <p className="text-xs text-muted-foreground">Nenhum {config.label.toLowerCase()} adicionado</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {items.map((cost) => (
+              <div key={cost.id} className="flex gap-2 items-center p-2 rounded-lg bg-muted/30">
+                <Input
+                  placeholder={`Ex: ${category === "setup" ? "Domínio, Licença" : category === "mensal" ? "Hospedagem, Banco de Dados" : "Banco de Imagens, Plugin"}`}
+                  value={cost.name}
+                  onChange={(e) => updateCost(cost.id, "name", e.target.value)}
+                  className="bg-background text-sm h-9"
+                />
+                <div className="w-32">
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="pl-7 bg-background text-sm h-9"
+                      placeholder="0,00"
+                      value={cost.value || ""}
+                      onChange={(e) => updateCost(cost.id, "value", Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => removeCost(cost.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+            <div className="flex justify-end">
+              <p className="text-xs font-medium">
+                Subtotal: <span className={config.color}>{formatCurrency(total)}</span>
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -381,9 +490,7 @@ const Calculator = () => {
                         <CommandInput
                           placeholder="Buscar cliente..."
                           value={clientName}
-                          onValueChange={(val) => {
-                            setClientName(val);
-                          }}
+                          onValueChange={(val) => setClientName(val)}
                         />
                         <CommandList>
                           <CommandEmpty>
@@ -549,70 +656,30 @@ const Calculator = () => {
             </CardContent>
           </Card>
 
-          {/* Extra Costs */}
+          {/* Costs - Now with 3 categories */}
           <Card className="shadow-card">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-medium flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-primary" />
-                  2. Custos Extras
-                </CardTitle>
-                <Button size="sm" variant="outline" onClick={addCost}>
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  Adicionar
-                </Button>
-              </div>
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <Tag className="h-4 w-4 text-primary" />
+                2. Custos
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              {costsList.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border">
-                  <p className="text-sm text-muted-foreground mb-3">Nenhum custo extra adicionado</p>
-                  <Button size="sm" variant="secondary" onClick={addCost}>
-                    <Plus className="h-4 w-4 mr-1.5" />
-                    Adicionar primeiro custo
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {costsList.map((cost) => (
-                    <div key={cost.id} className="flex gap-3 items-start p-3 rounded-lg bg-muted/30">
-                      <div className="flex-1 space-y-1.5">
-                        <Input
-                          placeholder="Ex: Domínio, Licença, Banco de Imagens..."
-                          value={cost.name}
-                          onChange={(e) => updateCost(cost.id, "name", e.target.value)}
-                          className="bg-background"
-                        />
-                      </div>
-                      <div className="w-36 space-y-1.5">
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            className="pl-8 bg-background"
-                            placeholder="0,00"
-                            value={cost.value || ""}
-                            onChange={(e) => updateCost(cost.id, "value", Number(e.target.value))}
-                          />
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => removeCost(cost.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <div className="flex justify-end pt-2">
-                    <p className="text-sm font-medium">
-                      Subtotal Extras: <span className="text-primary">{formatCurrency(totalCosts)}</span>
+            <CardContent className="space-y-6">
+              {renderCostSection("setup", setupCosts, totalSetup)}
+              <Separator />
+              {renderCostSection("mensal", mensalCosts, totalMensal)}
+              <Separator />
+              {renderCostSection("extra", extraCosts, totalExtra)}
+
+              {totalCosts > 0 && (
+                <>
+                  <Separator />
+                  <div className="flex justify-end">
+                    <p className="text-sm font-semibold">
+                      Total de Custos: <span className="text-primary">{formatCurrency(totalCosts)}</span>
                     </p>
                   </div>
-                </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -696,10 +763,33 @@ const Calculator = () => {
                   <span className="font-medium">{formatCurrency(basePrice)}</span>
                 </div>
 
-                {totalCosts > 0 && (
+                {totalSetup > 0 && (
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Custos Extras ({costsList.length})</span>
-                    <span className="font-medium">{formatCurrency(totalCosts)}</span>
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Wrench className="h-3 w-3 text-blue-400" />
+                      Setup Inicial ({setupCosts.length})
+                    </span>
+                    <span className="font-medium">{formatCurrency(totalSetup)}</span>
+                  </div>
+                )}
+
+                {totalMensal > 0 && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Repeat className="h-3 w-3 text-emerald-400" />
+                      Fixo Mensal ({mensalCosts.length})
+                    </span>
+                    <span className="font-medium">{formatCurrency(totalMensal)}</span>
+                  </div>
+                )}
+
+                {totalExtra > 0 && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <PackagePlus className="h-3 w-3 text-amber-400" />
+                      Custos Extras ({extraCosts.length})
+                    </span>
+                    <span className="font-medium">{formatCurrency(totalExtra)}</span>
                   </div>
                 )}
 
