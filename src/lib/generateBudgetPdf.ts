@@ -19,6 +19,15 @@ export interface BudgetData {
   complexity: number;
   basePrice: number;
 
+  // Categorized costs
+  setupCosts?: { name: string; value: number }[];
+  mensalCosts?: { name: string; value: number }[];
+  extraCosts?: { name: string; value: number }[];
+  totalSetup?: number;
+  totalMensal?: number;
+  totalExtra?: number;
+
+  // Legacy flat list (kept for backward compat with old budgets)
   costs: { name: string; value: number }[];
   totalCosts: number;
   subtotal: number;
@@ -38,14 +47,17 @@ export interface BudgetData {
 }
 
 const COLORS = {
-  dark: [24, 24, 27] as [number, number, number],       // zinc-900
-  text: [63, 63, 70] as [number, number, number],       // zinc-700
-  muted: [113, 113, 122] as [number, number, number],   // zinc-500
-  light: [244, 244, 245] as [number, number, number],   // zinc-100
-  accent: [16, 185, 129] as [number, number, number],   // emerald-500
+  dark: [24, 24, 27] as [number, number, number],
+  text: [63, 63, 70] as [number, number, number],
+  muted: [113, 113, 122] as [number, number, number],
+  light: [244, 244, 245] as [number, number, number],
+  accent: [16, 185, 129] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
-  danger: [239, 68, 68] as [number, number, number],    // red-500
-  warning: [245, 158, 11] as [number, number, number],  // amber-500
+  danger: [239, 68, 68] as [number, number, number],
+  warning: [245, 158, 11] as [number, number, number],
+  blue: [59, 130, 246] as [number, number, number],
+  emerald: [16, 185, 129] as [number, number, number],
+  amber: [245, 158, 11] as [number, number, number],
 };
 
 function formatCurrency(val: number): string {
@@ -63,30 +75,19 @@ export function generateBudgetPdf(data: BudgetData): void {
   doc.setFillColor(...COLORS.dark);
   doc.rect(0, 0, pageWidth, 48, "F");
 
-  // Freelancer/Company name
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(...COLORS.white);
   doc.text(data.freelancerName || "FreelanceFlow", margin, 16);
 
-  // Contact details (left)
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.muted);
   let contactY = 23;
-  if (data.freelancerEmail) {
-    doc.text(data.freelancerEmail, margin, contactY);
-    contactY += 5;
-  }
-  if (data.freelancerPhone) {
-    doc.text(data.freelancerPhone, margin, contactY);
-    contactY += 5;
-  }
-  if (data.freelancerWebsite) {
-    doc.text(data.freelancerWebsite, margin, contactY);
-  }
+  if (data.freelancerEmail) { doc.text(data.freelancerEmail, margin, contactY); contactY += 5; }
+  if (data.freelancerPhone) { doc.text(data.freelancerPhone, margin, contactY); contactY += 5; }
+  if (data.freelancerWebsite) { doc.text(data.freelancerWebsite, margin, contactY); }
 
-  // Budget number & dates (right-aligned)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...COLORS.accent);
@@ -98,13 +99,12 @@ export function generateBudgetPdf(data: BudgetData): void {
   doc.text(`Data: ${data.date}`, pageWidth - margin, 22, { align: "right" });
   doc.text(`Válido até: ${data.validityDate}`, pageWidth - margin, 28, { align: "right" });
 
-  // Accent line
   doc.setFillColor(...COLORS.accent);
   doc.rect(0, 48, pageWidth, 1.5, "F");
 
   y = 60;
 
-  // ─── CLIENT & PROJECT SECTION ───
+  // ─── CLIENT & PROJECT ───
   doc.setFillColor(...COLORS.light);
   doc.roundedRect(margin, y, contentWidth, 28, 2, 2, "F");
 
@@ -154,7 +154,7 @@ export function generateBudgetPdf(data: BudgetData): void {
   doc.text("Valor", pageWidth - margin - 4, y + 5.5, { align: "right" });
   y += 8;
 
-  // Table rows helper
+  let rowIdx = 0;
   const addRow = (label: string, value: string, options?: { bg?: boolean; bold?: boolean; color?: [number, number, number] }) => {
     if (options?.bg) {
       doc.setFillColor(...COLORS.light);
@@ -168,6 +168,14 @@ export function generateBudgetPdf(data: BudgetData): void {
     y += 8;
   };
 
+  const addSectionHeader = (label: string, color: [number, number, number]) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...color);
+    doc.text(`● ${label}`, margin + 4, y + 5);
+    y += 7;
+  };
+
   // Base price
   addRow(
     `Base (${data.hours}h × R$${data.hourlyRate}/h × ${data.complexity}x)`,
@@ -175,12 +183,52 @@ export function generateBudgetPdf(data: BudgetData): void {
     { bg: true }
   );
 
-  // Extra costs
-  data.costs.forEach((cost, i) => {
-    if (cost.name && cost.value > 0) {
-      addRow(`Custo: ${cost.name}`, formatCurrency(cost.value), { bg: i % 2 === 0 });
+  // Check if we have categorized costs (new format)
+  const hasCategories = (data.setupCosts && data.setupCosts.length > 0) ||
+    (data.mensalCosts && data.mensalCosts.length > 0) ||
+    (data.extraCosts && data.extraCosts.length > 0);
+
+  if (hasCategories) {
+    // Setup costs
+    if (data.setupCosts && data.setupCosts.length > 0) {
+      addSectionHeader("SETUP INICIAL", COLORS.blue);
+      data.setupCosts.forEach((cost, i) => {
+        addRow(`  ${cost.name}`, formatCurrency(cost.value), { bg: i % 2 === 0 });
+      });
+      if (data.totalSetup && data.totalSetup > 0) {
+        addRow("  Subtotal Setup", formatCurrency(data.totalSetup), { bold: true, color: COLORS.blue });
+      }
     }
-  });
+
+    // Monthly costs
+    if (data.mensalCosts && data.mensalCosts.length > 0) {
+      addSectionHeader("CUSTOS FIXOS MENSAIS", COLORS.emerald);
+      data.mensalCosts.forEach((cost, i) => {
+        addRow(`  ${cost.name}`, formatCurrency(cost.value), { bg: i % 2 === 0 });
+      });
+      if (data.totalMensal && data.totalMensal > 0) {
+        addRow("  Subtotal Mensal", formatCurrency(data.totalMensal), { bold: true, color: COLORS.emerald });
+      }
+    }
+
+    // Extra costs
+    if (data.extraCosts && data.extraCosts.length > 0) {
+      addSectionHeader("CUSTOS EXTRAS", COLORS.amber);
+      data.extraCosts.forEach((cost, i) => {
+        addRow(`  ${cost.name}`, formatCurrency(cost.value), { bg: i % 2 === 0 });
+      });
+      if (data.totalExtra && data.totalExtra > 0) {
+        addRow("  Subtotal Extras", formatCurrency(data.totalExtra), { bold: true, color: COLORS.amber });
+      }
+    }
+  } else {
+    // Legacy flat costs
+    data.costs.forEach((cost, i) => {
+      if (cost.name && cost.value > 0) {
+        addRow(`Custo: ${cost.name}`, formatCurrency(cost.value), { bg: i % 2 === 0 });
+      }
+    });
+  }
 
   // Separator
   doc.setDrawColor(...COLORS.light);
@@ -191,31 +239,16 @@ export function generateBudgetPdf(data: BudgetData): void {
   // Subtotal
   addRow("Subtotal", formatCurrency(data.subtotal), { bold: true, bg: true });
 
-  // Profit
   if (data.profitMargin > 0) {
-    addRow(
-      `Margem de Lucro (${data.profitMargin}%)`,
-      `+${formatCurrency(data.profitAmount)}`,
-      { color: COLORS.accent }
-    );
+    addRow(`Margem de Lucro (${data.profitMargin}%)`, `+${formatCurrency(data.profitAmount)}`, { color: COLORS.accent });
   }
 
-  // Tax
   if (data.tax > 0) {
-    addRow(
-      `Impostos (${data.tax}%)`,
-      `+${formatCurrency(data.taxAmount)}`,
-      { color: COLORS.warning }
-    );
+    addRow(`Impostos (${data.tax}%)`, `+${formatCurrency(data.taxAmount)}`, { color: COLORS.warning });
   }
 
-  // Discount
   if (data.discount > 0) {
-    addRow(
-      "Desconto",
-      `-${formatCurrency(data.discount)}`,
-      { color: COLORS.danger }
-    );
+    addRow("Desconto", `-${formatCurrency(data.discount)}`, { color: COLORS.danger });
   }
 
   // TOTAL
@@ -242,7 +275,7 @@ export function generateBudgetPdf(data: BudgetData): void {
     doc.setFontSize(9);
     doc.setTextColor(...COLORS.text);
     const lines = doc.splitTextToSize(data.paymentConditions, contentWidth - 8);
-    
+
     doc.setFillColor(...COLORS.light);
     doc.roundedRect(margin, y - 2, contentWidth, lines.length * 5 + 6, 2, 2, "F");
     doc.text(lines, margin + 4, y + 4);
@@ -280,7 +313,6 @@ export function generateBudgetPdf(data: BudgetData): void {
   doc.text("Gerado por FreelanceFlow", margin, footerY);
   doc.text(data.budgetNumber, pageWidth - margin, footerY, { align: "right" });
 
-  // Save
   const filename = `${data.budgetNumber}_${data.clientName.replace(/\s+/g, "_")}.pdf`;
   doc.save(filename);
 }
