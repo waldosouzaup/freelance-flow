@@ -14,6 +14,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', "-apple-system", "BlinkMacSystemFont", "system-ui", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -70,12 +74,14 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "chart-emerald": "hsl(var(--chart-emerald))",
+        "chart-cyan": "hsl(var(--chart-cyan))",
         "chart-blue": "hsl(var(--chart-blue))",
         "chart-green": "hsl(var(--chart-green))",
         "chart-yellow": "hsl(var(--chart-yellow))",
+        "chart-amber": "hsl(var(--chart-amber))",
         "chart-red": "hsl(var(--chart-red))",
         "chart-orange": "hsl(var(--chart-orange))",
-        "chart-purple": "hsl(var(--chart-purple))",
         "chart-teal": "hsl(var(--chart-teal))",
       },
       borderRadius: {
@@ -84,9 +90,12 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        "card": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-        "card-hover": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-        "dropdown": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        subtle: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        card: "0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08)",
+        "card-hover": "0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+        dropdown: "0 10px 20px -3px rgb(0 0 0 / 0.12), 0 4px 6px -4px rgb(0 0 0 / 0.08)",
+        "glow-emerald": "0 0 25px -5px hsl(160 84% 39% / 0.3)",
+        "glow-cyan": "0 0 25px -5px hsl(189 94% 43% / 0.3)",
       },
       keyframes: {
         "accordion-down": {

@@ -39,24 +39,32 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="absolute top-4 right-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Subtle ambient lighting */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
-      <Card className="w-full max-w-md shadow-card">
-        <CardHeader className="text-center space-y-4 pb-6">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
-            <Briefcase className="h-7 w-7 text-primary-foreground" />
+
+      <Card className="w-full max-w-md shadow-card border-border/80 backdrop-blur-sm relative z-10">
+        <CardHeader className="text-center space-y-3 pb-6">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 shadow-glow-emerald/30">
+            <Briefcase className="h-7 w-7 text-white" />
           </div>
-          <CardTitle className="text-2xl font-semibold">FreelanceFlow</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            {isSignUp ? "Crie sua conta para começar" : "Entre no seu painel de gestão"}
+          <div className="space-y-1">
+            <CardTitle className="text-2xl font-bold tracking-tight">FreelanceFlow</CardTitle>
+            <p className="text-xs uppercase tracking-wider font-semibold text-primary">Plataforma de Gestão & Precificação</p>
+          </div>
+          <CardDescription className="text-muted-foreground text-sm">
+            {isSignUp ? "Crie sua conta para gerenciar orçamentos e lucros" : "Entre no seu painel de gestão profissional"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email de Acesso</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -66,7 +74,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="pl-9"
+                  className="pl-9 bg-background"
                 />
               </div>
             </div>
@@ -82,30 +90,30 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="pl-9"
+                  className="pl-9 bg-background"
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Aguarde..." : isSignUp ? "Criar Conta" : "Entrar"}
+            <Button type="submit" className="w-full shadow-subtle" disabled={loading}>
+              {loading ? "Aguarde..." : isSignUp ? "Criar Conta Gratuita" : "Entrar no Painel"}
             </Button>
           </form>
-          <div className="mt-6 text-center pt-6 border-t border-border/50">
+          <div className="mt-6 text-center pt-6 border-t border-border/60">
             <p className="text-sm text-muted-foreground">
-              {isSignUp ? "Já tem conta?" : "Não tem conta?"}{" "}
+              {isSignUp ? "Já possui cadastro?" : "Ainda não possui conta?"}{" "}
               <button
                 type="button"
-                className="font-semibold text-primary hover:underline transition-all"
+                className="font-semibold text-primary hover:underline transition-all cursor-pointer"
                 onClick={() => setIsSignUp(!isSignUp)}
               >
-                {isSignUp ? "Faça login" : "Cadastre-se"}
+                {isSignUp ? "Acesse sua conta" : "Cadastre-se"}
               </button>
             </p>
           </div>
         </CardContent>
       </Card>
       <div className="absolute bottom-6 w-full text-center">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Desenvolvido por:{" "}
           <a 
             href="https://waldoeller.com/" 

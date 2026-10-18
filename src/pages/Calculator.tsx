@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,11 +57,27 @@ import {
   Wrench,
   Repeat,
   PackagePlus,
+  Sparkles,
+  Pencil,
+  AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { generateBudgetPdf, type BudgetData } from "@/lib/generateBudgetPdf";
+import { generateBudgetPdf, exportBudgetPdf, type BudgetData } from "@/lib/generateBudgetPdf";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MaintenanceCalculator } from "@/components/calculator/MaintenanceCalculator";
 import { cn } from "@/lib/utils";
 
 type CostCategory = "setup" | "mensal" | "extra";
@@ -76,6 +93,8 @@ interface ClientOption {
   id: string;
   name: string;
   email: string | null;
+  phone?: string | null;
+  company?: string | null;
 }
 
 interface BudgetRecord {
@@ -104,10 +123,26 @@ const CATEGORY_CONFIG: Record<CostCategory, { label: string; icon: typeof Wrench
 
 const Calculator = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const editId = searchParams.get("edit");
+
+  // Tab State
+  const [activeTab, setActiveTab] = useState<string>("services");
+
+  // Edit Mode State
+  const [editingBudget, setEditingBudget] = useState<BudgetRecord | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+
+  // Delete State
+  const [deleteTarget, setDeleteTarget] = useState<BudgetRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Budget info
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [clientCompany, setClientCompany] = useState("");
   const [projectName, setProjectName] = useState("");
   const [validityDays, setValidityDays] = useState(30);
   const [paymentConditions, setPaymentConditions] = useState("");
@@ -124,6 +159,11 @@ const Calculator = () => {
   const [freelancerEmail, setFreelancerEmail] = useState("");
   const [freelancerPhone, setFreelancerPhone] = useState("");
   const [freelancerWebsite, setFreelancerWebsite] = useState("");
+  const [freelancerLogo, setFreelancerLogo] = useState<string | null>(null);
+  const [freelancerCnpj, setFreelancerCnpj] = useState("");
+  const [freelancerAddress, setFreelancerAddress] = useState("");
+  const [freelancerPixKeyType, setFreelancerPixKeyType] = useState("");
+  const [freelancerPixKey, setFreelancerPixKey] = useState("");
 
   // Base
   const [hourlyRate, setHourlyRate] = useState(100);
@@ -173,7 +213,7 @@ const Calculator = () => {
 
     supabase
       .from("clients")
-      .select("id, name, email")
+      .select("id, name, email, phone, company")
       .eq("user_id", user.id)
       .order("name")
       .then(({ data }) => {
@@ -182,7 +222,7 @@ const Calculator = () => {
 
     supabase
       .from("profiles")
-      .select("display_name, company_name, phone, website")
+      .select("*")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -190,6 +230,30 @@ const Calculator = () => {
           setFreelancerName(data.company_name || data.display_name || "");
           setFreelancerPhone(data.phone || "");
           setFreelancerWebsite(data.website || "");
+          setFreelancerLogo(data.avatar_url || null);
+          const p = data as any;
+          let cnpjVal = p.cnpj || "";
+          let addressVal = p.address || "";
+          let pixTypeVal = p.pix_key_type || "";
+          let pixKeyVal = p.pix_key || "";
+
+          try {
+            const localExt = localStorage.getItem(`freelance_flow_profile_extended_${user.id}`);
+            if (localExt) {
+              const parsed = JSON.parse(localExt);
+              if (!cnpjVal && parsed.cnpj) cnpjVal = parsed.cnpj;
+              if (!addressVal && parsed.address) addressVal = parsed.address;
+              if (!pixTypeVal && parsed.pix_key_type) pixTypeVal = parsed.pix_key_type;
+              if (!pixKeyVal && parsed.pix_key) pixKeyVal = parsed.pix_key;
+            }
+          } catch {
+            // ignore JSON error
+          }
+
+          setFreelancerCnpj(cnpjVal);
+          setFreelancerAddress(addressVal);
+          setFreelancerPixKeyType(pixTypeVal);
+          setFreelancerPixKey(pixKeyVal);
         }
       });
 
@@ -197,10 +261,113 @@ const Calculator = () => {
     fetchBudgetHistory();
   }, [user, fetchBudgetHistory]);
 
+  // Load Budget for Editing if ?edit=ID is present
   useEffect(() => {
+    if (!user || !editId) {
+      setEditingBudget(null);
+      return;
+    }
+
+    const fetchBudgetToEdit = async () => {
+      setLoadingEdit(true);
+      const { data, error } = await supabase
+        .from("budgets")
+        .select("*")
+        .eq("id", editId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        toast.error("Orçamento não encontrado.");
+        setSearchParams({});
+        setLoadingEdit(false);
+        return;
+      }
+
+      const record = { ...data, budget_data: data.budget_data as any } as BudgetRecord;
+
+      if (record.status === "aprovado") {
+        toast.warning(
+          "Este orçamento já foi aprovado e não pode ser editado. Altere o status para 'Aguardando' caso precise reabri-lo."
+        );
+        navigate("/budgets");
+        setLoadingEdit(false);
+        return;
+      }
+
+      setEditingBudget(record);
+
+      const bData = record.budget_data || {};
+      const isMaint = record.budget_number.startsWith("MAN-") || bData.budget_type === "maintenance";
+
+      if (isMaint) {
+        setActiveTab("maintenance");
+      } else {
+        setActiveTab("services");
+        setBudgetNumber(record.budget_number);
+        setClientName(record.client_name || "");
+        setClientEmail(record.client_email || "");
+        setClientPhone(bData.clientPhone || "");
+        setClientCompany(bData.clientCpf || bData.clientCompany || "");
+        setProjectName(bData.projectName || record.project_name || "");
+        if (bData.paymentConditions) setPaymentConditions(bData.paymentConditions);
+        if (bData.notes) setNotes(bData.notes);
+        if (bData.hours !== undefined) setHours(Number(bData.hours));
+        if (bData.hourlyRate !== undefined) setHourlyRate(Number(bData.hourlyRate));
+        if (bData.complexity !== undefined) setComplexity(Number(bData.complexity));
+        if (bData.costs) setCostsList(bData.costs);
+        if (bData.profitMargin !== undefined) setProfitMargin(Number(bData.profitMargin));
+        if (bData.tax !== undefined) setTax(Number(bData.tax));
+        if (bData.discount !== undefined) setDiscountValue(Number(bData.discount));
+      }
+      setLoadingEdit(false);
+    };
+
+    fetchBudgetToEdit();
+  }, [user, editId]);
+
+  const handleCancelEdit = () => {
+    setEditingBudget(null);
+    setSearchParams({});
     const year = new Date().getFullYear();
     setBudgetNumber(`ORC-${year}-...`);
-  }, []);
+    setProjectName("");
+    setClientName("");
+    setClientEmail("");
+    setClientPhone("");
+    setClientCompany("");
+    setPaymentConditions("");
+    setNotes("");
+    setCostsList([]);
+    setDiscountValue(0);
+  };
+
+  const handleDeleteBudgetConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("budgets")
+        .delete()
+        .eq("id", deleteTarget.id);
+
+      if (error) {
+        toast.error("Erro ao excluir orçamento.");
+      } else {
+        toast.success(`Orçamento ${deleteTarget.budget_number} excluído.`);
+        setBudgetHistory((prev) => prev.filter((b) => b.id !== deleteTarget.id));
+      }
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  useEffect(() => {
+    if (editingBudget) return;
+    const year = new Date().getFullYear();
+    setBudgetNumber(`ORC-${year}-...`);
+  }, [editingBudget]);
 
   const addCost = (category: CostCategory) => {
     setCostsList([...costsList, { id: crypto.randomUUID(), name: "", value: 0, category }]);
@@ -240,6 +407,8 @@ const Calculator = () => {
   const handleSelectClient = (client: ClientOption) => {
     setClientName(client.name);
     setClientEmail(client.email || "");
+    setClientPhone(client.phone || "");
+    setClientCompany(client.company || "");
     setClientComboOpen(false);
   };
 
@@ -263,8 +432,15 @@ const Calculator = () => {
       freelancerEmail,
       freelancerPhone,
       freelancerWebsite,
+      logoUrl: freelancerLogo || undefined,
+      cnpj: freelancerCnpj.trim() || undefined,
+      address: freelancerAddress.trim() || undefined,
+      pixKeyType: freelancerPixKeyType.trim() || undefined,
+      pixKey: freelancerPixKey.trim() || undefined,
       clientName: clientName.trim(),
       clientEmail: clientEmail.trim(),
+      clientPhone: clientPhone || undefined,
+      clientCpf: clientCompany || undefined,
       projectName: projectName.trim(),
       hourlyRate,
       hours,
@@ -324,25 +500,51 @@ const Calculator = () => {
     setGeneratingPdf(true);
 
     try {
-      const finalBudgetNumber = await getNextBudgetNumber();
+      const finalBudgetNumber = editingBudget
+        ? editingBudget.budget_number
+        : await getNextBudgetNumber();
       setBudgetNumber(finalBudgetNumber);
 
       const budgetData = buildBudgetData(finalBudgetNumber);
-      generateBudgetPdf(budgetData);
+      await generateBudgetPdf(budgetData);
 
-      // Save to database
-      await supabase.from("budgets").insert([{
-        user_id: user.id,
-        budget_number: finalBudgetNumber,
-        client_name: budgetData.clientName,
-        client_email: budgetData.clientEmail || null,
-        project_name: budgetData.projectName,
-        total_value: budgetData.total,
-        budget_data: JSON.parse(JSON.stringify(budgetData)),
-      }]);
+      if (editingBudget) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from("budgets")
+          .update({
+            client_name: budgetData.clientName,
+            client_email: budgetData.clientEmail || null,
+            project_name: budgetData.projectName,
+            total_value: budgetData.total,
+            budget_data: JSON.parse(JSON.stringify(budgetData)),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editingBudget.id);
 
-      toast.success(`Orçamento ${finalBudgetNumber} gerado e salvo!`);
-      fetchBudgetHistory();
+        if (updateError) {
+          console.error("Database update error:", updateError);
+          toast.warning("PDF gerado, mas houve falha ao atualizar no banco de dados.");
+        } else {
+          toast.success(`Orçamento ${finalBudgetNumber} atualizado com sucesso!`);
+          fetchBudgetHistory();
+          navigate("/budgets");
+        }
+      } else {
+        // Save to database
+        await supabase.from("budgets").insert([{
+          user_id: user.id,
+          budget_number: finalBudgetNumber,
+          client_name: budgetData.clientName,
+          client_email: budgetData.clientEmail || null,
+          project_name: budgetData.projectName,
+          total_value: budgetData.total,
+          budget_data: JSON.parse(JSON.stringify(budgetData)),
+        }]);
+
+        toast.success(`Orçamento ${finalBudgetNumber} gerado e salvo!`);
+        fetchBudgetHistory();
+      }
     } catch (err) {
       console.error("PDF generation error:", err);
       toast.error("Erro ao gerar o PDF do orçamento.");
@@ -351,8 +553,22 @@ const Calculator = () => {
     }
   };
 
-  const handleRegeneratePdf = (record: BudgetRecord) => {
-    generateBudgetPdf(record.budget_data);
+  const handleRegeneratePdf = async (record: BudgetRecord) => {
+    const dataToExport = { ...record.budget_data };
+    if (!dataToExport.logoUrl && freelancerLogo) {
+      dataToExport.logoUrl = freelancerLogo;
+    }
+    if (!dataToExport.cnpj && freelancerCnpj) {
+      dataToExport.cnpj = freelancerCnpj;
+    }
+    if (!dataToExport.address && freelancerAddress) {
+      dataToExport.address = freelancerAddress;
+    }
+    if (!dataToExport.pixKey && freelancerPixKey) {
+      dataToExport.pixKey = freelancerPixKey;
+      dataToExport.pixKeyType = freelancerPixKeyType;
+    }
+    await exportBudgetPdf(dataToExport);
     toast.success(`PDF do orçamento ${record.budget_number} baixado!`);
   };
 
@@ -450,13 +666,47 @@ const Calculator = () => {
         </div>
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Calculadora de Precificação</h1>
-          <p className="text-muted-foreground mt-0.5">Monte orçamentos de forma detalhada e profissional</p>
+          <p className="text-muted-foreground mt-0.5">Monte orçamentos de serviços e manutenção de forma profissional</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Form - Left Column */}
-        <div className="lg:col-span-2 space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted/60 p-1">
+          <TabsTrigger value="services" className="flex items-center gap-2">
+            <CalculatorIcon className="h-4 w-4" />
+            <span>Serviços & Projetos</span>
+          </TabsTrigger>
+          <TabsTrigger value="maintenance" className="flex items-center gap-2">
+            <Wrench className="h-4 w-4 text-emerald-500" />
+            <span>Manutenção de Produtos</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="services" className="space-y-6 mt-0">
+          {editingBudget && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-primary/30 bg-primary/5 text-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                  <Pencil className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">
+                    Editando Orçamento de Serviço: <span className="text-primary font-mono">{editingBudget.budget_number}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Altere os parâmetros desejados e clique em Salvar para atualizar este orçamento e gerar o novo PDF.
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleCancelEdit} className="h-8 text-xs shrink-0">
+                Cancelar Edição
+              </Button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Form - Left Column */}
+            <div className="lg:col-span-2 space-y-6">
           {/* Budget Info Section */}
           <Card className="shadow-card border-primary/20">
             <CardHeader className="pb-3">
@@ -822,13 +1072,19 @@ const Calculator = () => {
                 )}
               </div>
 
-              <div className="p-4 rounded-lg bg-primary text-primary-foreground">
-                <p className="text-xs font-medium text-primary-foreground/80 mb-1 uppercase tracking-wide">
-                  Valor Sugerido
+              <div className="p-5 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-glow-emerald/25 border border-emerald-500/30">
+                <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wider mb-1">
+                  Valor Sugerido do Projeto
                 </p>
-                <p className="text-3xl font-bold">
+                <p className="text-3xl font-extrabold font-mono-numbers tracking-tight">
                   {formatCurrency(suggestedPrice)}
                 </p>
+                {freelancerPixKey && (
+                  <p className="text-[11px] text-emerald-100/90 mt-2 flex items-center gap-1.5 font-medium">
+                    <Sparkles className="h-3 w-3 inline text-emerald-200" />
+                    Chave Pix ativa ({freelancerPixKeyType || "Pix"}) inclusa no PDF
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
@@ -845,7 +1101,13 @@ const Calculator = () => {
                 disabled={generatingPdf || !canGeneratePdf}
               >
                 <FileDown className="h-4 w-4 mr-2" />
-                {generatingPdf ? "Gerando PDF..." : "Gerar Orçamento PDF"}
+                {editingBudget
+                  ? generatingPdf
+                    ? "Atualizando..."
+                    : "Salvar Alterações e Atualizar PDF"
+                  : generatingPdf
+                  ? "Gerando PDF..."
+                  : "Gerar Orçamento PDF"}
               </Button>
 
               {!canGeneratePdf && (
@@ -857,16 +1119,70 @@ const Calculator = () => {
           </Card>
         </div>
       </div>
+    </TabsContent>
+
+    <TabsContent value="maintenance" className="space-y-6 mt-0">
+      <MaintenanceCalculator
+        clients={clients}
+        freelancerProfile={{
+          name: freelancerName,
+          email: freelancerEmail,
+          phone: freelancerPhone,
+          website: freelancerWebsite,
+          logoUrl: freelancerLogo || undefined,
+          cnpj: freelancerCnpj.trim() || undefined,
+          address: freelancerAddress.trim() || undefined,
+          pixKeyType: freelancerPixKeyType.trim() || undefined,
+          pixKey: freelancerPixKey.trim() || undefined,
+        }}
+        defaultHourlyRate={hourlyRate}
+        onBudgetGenerated={() => {
+          fetchBudgetHistory();
+          if (editingBudget) navigate("/budgets");
+        }}
+        editBudgetId={
+          editingBudget &&
+          (editingBudget.budget_number.startsWith("MAN-") ||
+            editingBudget.budget_data?.budget_type === "maintenance")
+            ? editingBudget.id
+            : null
+        }
+        editInitialData={
+          editingBudget &&
+          (editingBudget.budget_number.startsWith("MAN-") ||
+            editingBudget.budget_data?.budget_type === "maintenance")
+            ? editingBudget.budget_data
+            : null
+        }
+        onCancelEdit={handleCancelEdit}
+      />
+    </TabsContent>
+  </Tabs>
 
       {/* Budget History */}
       <Card className="shadow-card">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <History className="h-4 w-4 text-primary" />
-              Histórico de Orçamentos
-            </CardTitle>
-            <span className="text-xs text-muted-foreground">{budgetHistory.length} orçamento(s)</span>
+            <div>
+              <CardTitle className="text-base font-medium flex items-center gap-2">
+                <History className="h-4 w-4 text-primary" />
+                Histórico de Orçamentos Recentes
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Altere orçamentos em aberto ou gerencie a listagem completa.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                {budgetHistory.length} orçamento(s)
+              </span>
+              <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                <Link to="/budgets">
+                  Gerenciador Completo
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -895,7 +1211,20 @@ const Calculator = () => {
                     const statusCfg = STATUS_CONFIG[budget.status] || STATUS_CONFIG.aguardando;
                     return (
                       <TableRow key={budget.id} className="hover:bg-muted/30">
-                        <TableCell className="font-mono text-sm">{budget.budget_number}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          <div className="flex items-center gap-1.5">
+                            {budget.budget_number.startsWith("MAN-") ? (
+                              <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                Manutenção
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                                Serviço
+                              </span>
+                            )}
+                            <span>{budget.budget_number}</span>
+                          </div>
+                        </TableCell>
                         <TableCell className="font-medium">{budget.client_name}</TableCell>
                         <TableCell>{budget.project_name}</TableCell>
                         <TableCell className="text-right font-medium">
@@ -937,15 +1266,42 @@ const Calculator = () => {
                           {format(new Date(budget.created_at), "dd/MM/yy", { locale: ptBR })}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleRegeneratePdf(budget)}
-                            title="Baixar PDF novamente"
-                          >
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-foreground"
+                              onClick={() => {
+                                if (budget.status === "aprovado") {
+                                  toast.warning("Orçamento aprovado não pode ser alterado.");
+                                  return;
+                                }
+                                navigate(`/calculator?edit=${budget.id}`);
+                              }}
+                              title={budget.status === "aprovado" ? "Aprovado (não editável)" : "Editar Orçamento"}
+                              disabled={budget.status === "aprovado"}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleRegeneratePdf(budget)}
+                              title="Baixar PDF novamente"
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive/80 hover:text-destructive"
+                              onClick={() => setDeleteTarget(budget)}
+                              title="Excluir Orçamento"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -956,6 +1312,33 @@ const Calculator = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Excluir Orçamento
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o orçamento{" "}
+              <strong className="text-foreground">{deleteTarget?.budget_number}</strong>?
+              Esta ação removerá este orçamento permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteBudgetConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Excluindo..." : "Sim, Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

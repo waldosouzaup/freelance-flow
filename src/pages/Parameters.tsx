@@ -56,27 +56,27 @@ const Parameters = () => {
     <div className="max-w-2xl mx-auto space-y-6 pb-8">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+        <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
           <Settings className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Parâmetros de Precificação</h1>
-          <p className="text-muted-foreground mt-0.5">Configure os valores padrão para a calculadora</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Parâmetros de Precificação</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Defina os valores padrão que alimentarão automaticamente as calculadoras</p>
         </div>
       </div>
 
-      <Card className="shadow-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium">Configurações Padrão</CardTitle>
+      <Card className="shadow-card border-border/80">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold">Configurações Base de Cálculo</CardTitle>
           <CardDescription>
-            Esses valores serão usados automaticamente na calculadora de precificação
+            Estes valores são carregados automaticamente nos novos orçamentos de serviços e manutenção
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="space-y-2">
-              <Label className="text-sm flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-emerald-500" />
                 Valor/Hora Padrão (R$)
               </Label>
               <Input 
@@ -84,34 +84,34 @@ const Parameters = () => {
                 step="0.01" 
                 value={hourlyRate} 
                 onChange={(e) => setHourlyRate(Number(e.target.value))}
-                className="max-w-xs"
+                className="max-w-xs bg-background font-mono-numbers"
               />
               <p className="text-xs text-muted-foreground">
-                Valor base por hora de trabalho
+                Custo base de sua hora técnica ou operacional de trabalho.
               </p>
             </div>
             
             <div className="space-y-2">
-              <Label className="text-sm flex items-center gap-2">
-                <Percent className="h-4 w-4 text-muted-foreground" />
-                Margem Padrão (%)
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Percent className="h-4 w-4 text-cyan-500" />
+                Margem de Lucro Padrão (%)
               </Label>
               <Input 
                 type="number" 
                 step="0.01" 
                 value={defaultMargin} 
                 onChange={(e) => setDefaultMargin(Number(e.target.value))}
-                className="max-w-xs"
+                className="max-w-xs bg-background font-mono-numbers"
               />
               <p className="text-xs text-muted-foreground">
-                Percentual de margem de lucro padrão
+                Percentual padrão de margem adicionado sobre os custos e horas.
               </p>
             </div>
             
             <div className="space-y-2">
-              <Label className="text-sm flex items-center gap-2">
-                <Layers className="h-4 w-4 text-muted-foreground" />
-                Complexidade Padrão
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Layers className="h-4 w-4 text-amber-500" />
+                Multiplicador de Complexidade Padrão
               </Label>
               <Input 
                 type="number" 
@@ -120,16 +120,19 @@ const Parameters = () => {
                 max="3.0" 
                 value={defaultComplexity} 
                 onChange={(e) => setDefaultComplexity(Number(e.target.value))}
-                className="max-w-xs"
+                className="max-w-xs bg-background font-mono-numbers"
               />
               <p className="text-xs text-muted-foreground">
-                Multiplicador de complexidade (1 = Padrão, 0.5 = Fácil, 3 = Muito Complexo)
+                Fator de multiplicação de risco e complexidade (1.0 = Normal, 0.5 = Simples, 2.0+ = Alto risco).
               </p>
             </div>
           </div>
           
-          <div className="pt-4 border-t">
-            <Button onClick={handleSave} disabled={loading} className="min-w-32">
+          <div className="pt-4 border-t border-border/80 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Configurações vinculadas à sua conta.
+            </p>
+            <Button onClick={handleSave} disabled={loading} className="min-w-36 shadow-subtle">
               <Save className="h-4 w-4 mr-2" />
               {loading ? "Salvando..." : "Salvar Parâmetros"}
             </Button>

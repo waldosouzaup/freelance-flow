@@ -9,12 +9,12 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const COLORS = [
-  "hsl(214 90% 52%)",
-  "hsl(142 71% 45%)",
-  "hsl(38 92% 50%)",
-  "hsl(0 84% 60%)",
-  "hsl(262 83% 58%)",
-  "hsl(173 80% 45%)",
+  "hsl(152 76% 40%)", // Emerald
+  "hsl(189 94% 43%)", // Cyan
+  "hsl(214 90% 52%)", // Royal Blue
+  "hsl(38 92% 50%)",  // Amber
+  "hsl(173 80% 40%)", // Teal
+  "hsl(215 16% 47%)", // Slate
 ];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,10 +25,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  em_andamento: "bg-warning/10 text-warning",
-  concluido: "bg-success/10 text-success",
-  pausado: "bg-muted text-muted-foreground",
-  cancelado: "bg-destructive/10 text-destructive",
+  em_andamento: "bg-warning/10 text-warning border-warning/20",
+  concluido: "bg-success/10 text-success border-success/20",
+  pausado: "bg-muted text-muted-foreground border-border",
+  cancelado: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 const Billing = () => {
@@ -86,53 +86,72 @@ const Billing = () => {
       value: formatCurrency(totalBilled), 
       icon: DollarSign, 
       color: "success",
-      change: "+12% este mês"
+      change: "Receita liquidada",
+      badge: "Liquidado",
+      isHero: true,
     },
     { 
       title: "Em Andamento", 
       value: formatCurrency(totalActive), 
       icon: TrendingUp, 
       color: "warning",
-      change: "8 projetos ativos"
+      change: `${projects.filter(p => p.status === "em_andamento").length} projetos ativos`,
+      badge: "A receber",
+      isHero: false,
     },
     { 
-      title: "Valor Médio / Projeto", 
+      title: "Ticket Médio / Projeto", 
       value: formatCurrency(avgValue), 
       icon: BarChart3, 
       color: "info",
-      change: "Baseado em todos os projetos"
+      change: `${projects.length} projetos no total`,
+      badge: "Média",
+      isHero: false,
     },
   ];
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-8" aria-label="Relatório Financeiro">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Faturamento</h1>
-        <p className="text-muted-foreground mt-1">Acompanhe seu desempenho financeiro</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Relatório Financeiro & Faturamento</h1>
+          <p className="text-sm text-muted-foreground mt-1">Acompanhe seu desempenho financeiro, ticket médio e distribuição</p>
+        </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {summaryCards.map((card) => (
-          <Card key={card.title} className="shadow-card hover:shadow-card-hover transition-shadow">
+          <Card 
+            key={card.title} 
+            className={`shadow-card hover:shadow-card-hover transition-all duration-200 border-border/80 ${
+              card.isHero ? "bg-gradient-to-b from-card to-primary/[0.03] border-primary/20" : ""
+            }`}
+          >
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">{card.title}</p>
-                  <p className="text-2xl font-semibold">{card.value}</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{card.title}</p>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted font-medium text-muted-foreground">
+                      {card.badge}
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold tracking-tight font-mono-numbers">{card.value}</p>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <ArrowUpRight className="h-3 w-3" />
+                    <ArrowUpRight className="h-3 w-3 text-primary" />
                     {card.change}
                   </p>
                 </div>
-                <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${
-                  card.color === "success" ? "bg-success/10" :
-                  card.color === "warning" ? "bg-warning/10" : "bg-info/10"
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${
+                  card.color === "success" ? "bg-emerald-500/10 border border-emerald-500/20" :
+                  card.color === "warning" ? "bg-amber-500/10 border border-amber-500/20" : 
+                  "bg-cyan-500/10 border border-cyan-500/20"
                 }`}>
                   <card.icon className={`h-6 w-6 ${
-                    card.color === "success" ? "text-success" :
-                    card.color === "warning" ? "text-warning" : "text-info"
+                    card.color === "success" ? "text-emerald-500" :
+                    card.color === "warning" ? "text-amber-500" : "text-cyan-500"
                   }`} />
                 </div>
               </div>
@@ -144,40 +163,42 @@ const Billing = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Monthly Chart */}
-        <Card className="shadow-card">
+        <Card className="shadow-card border-border/80">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
-              Faturamento Mensal
+              Faturamento Mensal Realizado
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 13% 91%)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.6)" vertical={false} />
                   <XAxis 
                     dataKey="month" 
-                    tick={{ fill: "hsl(220 10% 46%)", fontSize: 12 }}
-                    axisLine={{ stroke: "hsl(220 13% 91%)" }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    axisLine={{ stroke: "hsl(var(--border) / 0.6)" }}
                     tickLine={false}
                   />
                   <YAxis 
-                    tick={{ fill: "hsl(220 10% 46%)", fontSize: 12 }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(v) => `R$${v}`}
+                    tickFormatter={(v) => `R$${v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`}
                   />
                   <Tooltip
-                    formatter={(v: number) => formatCurrency(v)}
+                    formatter={(v: number) => [formatCurrency(v), "Faturado"]}
                     contentStyle={{ 
-                      backgroundColor: "white", 
-                      border: "1px solid hsl(220 13% 91%)", 
-                      borderRadius: "8px",
-                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
+                      backgroundColor: "hsl(var(--card))", 
+                      border: "1px solid hsl(var(--border))", 
+                      borderRadius: "10px",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                      color: "hsl(var(--foreground))"
                     }}
+                    labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
                   />
-                  <Bar dataKey="valor" radius={[4, 4, 0, 0]} fill="hsl(214 90% 52%)" />
+                  <Bar dataKey="valor" radius={[6, 6, 0, 0]} fill="hsl(152 76% 40%)" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -185,10 +206,10 @@ const Billing = () => {
         </Card>
 
         {/* Client Distribution */}
-        <Card className="shadow-card">
+        <Card className="shadow-card border-border/80">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <PieIcon className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <PieIcon className="h-4 w-4 text-cyan-500" />
               Distribuição por Cliente
             </CardTitle>
           </CardHeader>
@@ -213,13 +234,15 @@ const Billing = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(v: number) => formatCurrency(v)}
+                    formatter={(v: number) => [formatCurrency(v), "Total"]}
                     contentStyle={{ 
-                      backgroundColor: "white", 
-                      border: "1px solid hsl(220 13% 91%)", 
-                      borderRadius: "8px",
-                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
+                      backgroundColor: "hsl(var(--card))", 
+                      border: "1px solid hsl(var(--border))", 
+                      borderRadius: "10px",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                      color: "hsl(var(--foreground))"
                     }}
+                    labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600 }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -229,19 +252,19 @@ const Billing = () => {
       </div>
 
       {/* Projects Table */}
-      <Card className="shadow-card">
+      <Card className="shadow-card border-border/80">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium">Projetos com Valores</CardTitle>
+          <CardTitle className="text-base font-semibold">Detalhamento Financeiro por Projeto</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-lg border border-border/80 overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-medium">Projeto</TableHead>
-                  <TableHead className="font-medium">Cliente</TableHead>
-                  <TableHead className="font-medium">Status</TableHead>
-                  <TableHead className="font-medium text-right">Valor</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Projeto</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Cliente</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -253,15 +276,15 @@ const Billing = () => {
                   </TableRow>
                 ) : (
                   projects.map((p) => (
-                    <TableRow key={p.id} className="hover:bg-muted/30">
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell>{p.clients?.name || "—"}</TableCell>
+                    <TableRow key={p.id} className="hover:bg-muted/40 transition-colors">
+                      <TableCell className="font-medium text-foreground">{p.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{p.clients?.name || "—"}</TableCell>
                       <TableCell>
-                        <span className={`text-xs px-2.5 py-1 rounded-full ${STATUS_COLORS[p.status]}`}>
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${STATUS_COLORS[p.status] || "bg-muted text-muted-foreground"}`}>
                           {STATUS_LABELS[p.status] || p.status}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right font-medium">
+                      <TableCell className="text-right font-semibold font-mono-numbers text-foreground">
                         {formatCurrency(Number(p.value) || 0)}
                       </TableCell>
                     </TableRow>

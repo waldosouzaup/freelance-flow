@@ -27,6 +27,13 @@ const STATUS_LABELS: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  em_andamento: "bg-warning/10 text-warning border-warning/20",
+  concluido: "bg-success/10 text-success border-success/20",
+  pausado: "bg-muted text-muted-foreground border-border",
+  cancelado: "bg-destructive/10 text-destructive border-destructive/20",
+};
+
 const ProjectDetails = () => {
   const { id } = useParams();
   const { user } = useAuth();
@@ -100,34 +107,39 @@ const ProjectDetails = () => {
   const progress = stages.length > 0 ? Math.round((completedCount / stages.length) * 100) : 0;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto pb-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{project.name}</h1>
-        <Button asChild variant="outline" size="sm">
-          <Link to={`/projects/${id}/edit`}><Pencil className="h-4 w-4 mr-1" />Editar</Link>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{project.name}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Visão detalhada de etapas, lucratividade e notas</p>
+        </div>
+        <Button asChild variant="outline" size="sm" className="shadow-subtle">
+          <Link to={`/projects/${id}/edit`}><Pencil className="h-4 w-4 mr-1.5" />Editar Projeto</Link>
         </Button>
       </div>
 
       {/* Project info */}
-      <Card className="border-border">
+      <Card className="shadow-card border-border/80">
         <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <p className="text-xs text-muted-foreground">Cliente</p>
-            <p className="font-medium">{project.clients?.name || "—"}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cliente</p>
+            <p className="font-medium text-foreground mt-1">{project.clients?.name || "—"}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Status</p>
-            <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-              {STATUS_LABELS[project.status]}
-            </span>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
+            <div className="mt-1">
+              <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${STATUS_COLORS[project.status] || "bg-muted text-muted-foreground"}`}>
+                {STATUS_LABELS[project.status] || project.status}
+              </span>
+            </div>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Receita Estimada</p>
-            <p className="font-medium">R$ {project.value?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Receita Estimada</p>
+            <p className="font-semibold text-foreground font-mono-numbers mt-1">R$ {project.value?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Prazo</p>
-            <p className="font-medium">{project.deadline ? format(new Date(project.deadline), "dd/MM/yyyy") : "—"}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prazo</p>
+            <p className="font-medium text-foreground font-mono-numbers mt-1">{project.deadline ? format(new Date(project.deadline), "dd/MM/yyyy") : "—"}</p>
           </div>
         </CardContent>
       </Card>
@@ -146,14 +158,14 @@ const ProjectDetails = () => {
         if (!hasFinancialData) return null;
 
         return (
-          <Card className="border-border">
-            <CardHeader>
+          <Card className="shadow-card border-border/80">
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-primary" />
-                  Análise Financeira
+                  Análise Financeira & Margem
                 </CardTitle>
-                <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${getProfitabilityBadgeClasses(analysis.status)}`}>
+                <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${getProfitabilityBadgeClasses(analysis.status)}`}>
                   {getProfitabilityLabel(analysis.status)}
                 </span>
               </div>
@@ -171,23 +183,23 @@ const ProjectDetails = () => {
                 <>
                   {/* Key Metrics Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-3 rounded-lg bg-muted/30">
-                      <p className="text-xs text-muted-foreground mb-1">Receita Estimada</p>
-                      <p className="text-lg font-bold">{formatCurrency(project.value || 0)}</p>
+                    <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Receita Estimada</p>
+                      <p className="text-lg font-bold font-mono-numbers text-foreground">{formatCurrency(project.value || 0)}</p>
                     </div>
-                    <div className="p-3 rounded-lg bg-muted/30">
-                      <p className="text-xs text-muted-foreground mb-1">Custos Reais</p>
-                      <p className="text-lg font-bold">{formatCurrency(project.actual_costs || 0)}</p>
+                    <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Custos Reais</p>
+                      <p className="text-lg font-bold font-mono-numbers text-foreground">{formatCurrency(project.actual_costs || 0)}</p>
                     </div>
-                    <div className="p-3 rounded-lg bg-muted/30">
-                      <p className="text-xs text-muted-foreground mb-1">Lucro Real</p>
-                      <p className={`text-lg font-bold ${analysis.profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Lucro Real</p>
+                      <p className={`text-lg font-bold font-mono-numbers ${analysis.profit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                         {formatCurrency(analysis.profit)}
                       </p>
                     </div>
-                    <div className="p-3 rounded-lg bg-muted/30">
-                      <p className="text-xs text-muted-foreground mb-1">Valor/Hora Real</p>
-                      <p className={`text-lg font-bold ${getProfitabilityColor(analysis.status)}`}>
+                    <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Valor/Hora Real</p>
+                      <p className={`text-lg font-bold font-mono-numbers ${getProfitabilityColor(analysis.status)}`}>
                         {formatRate(analysis.realHourRate)}
                       </p>
                     </div>
@@ -196,25 +208,25 @@ const ProjectDetails = () => {
                   {/* Hours Comparison */}
                   {(project.estimated_hours || project.actual_hours) && (
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Comparativo de Horas</p>
-                      <div className="space-y-1.5">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Comparativo de Horas</p>
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Estimado</span>
-                          <span className="font-medium">{formatHours(project.estimated_hours)}</span>
+                          <span className="font-medium font-mono-numbers">{formatHours(project.estimated_hours)}</span>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div className="h-full bg-primary/40 rounded-full" style={{ width: '100%' }} />
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Real</span>
-                          <span className="font-medium">{formatHours(project.actual_hours)}</span>
+                          <span className="font-medium font-mono-numbers">{formatHours(project.actual_hours)}</span>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${
                               project.actual_hours && project.estimated_hours && project.actual_hours > project.estimated_hours
-                                ? 'bg-warning'
-                                : 'bg-success'
+                                ? 'bg-amber-500'
+                                : 'bg-emerald-500'
                             }`}
                             style={{
                               width: project.estimated_hours && project.actual_hours
@@ -229,13 +241,13 @@ const ProjectDetails = () => {
 
                   {/* Rate Comparison */}
                   {analysis.estimatedHourRate && analysis.realHourRate && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg border border-border text-sm">
+                    <div className="flex items-center gap-3 p-3.5 rounded-xl border border-border/80 bg-muted/20 text-sm">
                       <TrendingUp className={`h-4 w-4 shrink-0 ${getProfitabilityColor(analysis.status)}`} />
                       <div>
                         <span className="text-muted-foreground">Valor/hora estimado: </span>
-                        <span className="font-medium">{formatRate(analysis.estimatedHourRate)}</span>
+                        <span className="font-semibold font-mono-numbers">{formatRate(analysis.estimatedHourRate)}</span>
                         <span className="text-muted-foreground"> → Real: </span>
-                        <span className={`font-semibold ${getProfitabilityColor(analysis.status)}`}>
+                        <span className={`font-bold font-mono-numbers ${getProfitabilityColor(analysis.status)}`}>
                           {formatRate(analysis.realHourRate)}
                         </span>
                       </div>
@@ -249,19 +261,19 @@ const ProjectDetails = () => {
       })()}
 
       {project.description && (
-        <Card className="border-border">
-          <CardHeader><CardTitle className="text-base">Descrição</CardTitle></CardHeader>
-          <CardContent><p className="text-sm text-muted-foreground">{project.description}</p></CardContent>
+        <Card className="shadow-card border-border/80">
+          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold">Descrição do Projeto</CardTitle></CardHeader>
+          <CardContent><p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p></CardContent>
         </Card>
       )}
 
       {project.links && project.links.length > 0 && (
-        <Card className="border-border">
-          <CardHeader><CardTitle className="text-base">Links Úteis</CardTitle></CardHeader>
-          <CardContent className="space-y-1">
+        <Card className="shadow-card border-border/80">
+          <CardHeader className="pb-2"><CardTitle className="text-base font-semibold">Links & Repositórios</CardTitle></CardHeader>
+          <CardContent className="space-y-1.5">
             {project.links.map((link: string, i: number) => (
-              <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline">
-                <ExternalLink className="h-3 w-3" />{link}
+              <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-primary hover:underline">
+                <ExternalLink className="h-3.5 w-3.5" />{link}
               </a>
             ))}
           </CardContent>
@@ -269,14 +281,14 @@ const ProjectDetails = () => {
       )}
 
       {/* Progress */}
-      <Card className="border-border">
+      <Card className="shadow-card border-border/80">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Etapas ({completedCount}/{stages.length})</CardTitle>
-            <span className="text-sm text-muted-foreground">{progress}%</span>
+            <CardTitle className="text-base font-semibold">Etapas do Escopo ({completedCount}/{stages.length})</CardTitle>
+            <span className="text-sm font-semibold font-mono-numbers text-primary">{progress}%</span>
           </div>
-          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-chart-green rounded-full transition-all" style={{ width: `${progress}%` }} />
+          <div className="w-full h-2 bg-muted rounded-full overflow-hidden mt-2">
+            <div className="h-full bg-emerald-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -326,11 +338,11 @@ const ProjectDetails = () => {
       </Card>
 
       {/* Notes */}
-      <Card className="border-border">
-        <CardHeader><CardTitle className="text-base">Notas Gerais</CardTitle></CardHeader>
+      <Card className="shadow-card border-border/80">
+        <CardHeader className="pb-2"><CardTitle className="text-base font-semibold">Notas Gerais & Observações</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Anotações sobre o projeto..." />
-          <Button size="sm" onClick={saveNotes}>Salvar Notas</Button>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Anotações internas sobre o projeto..." className="bg-background" />
+          <Button size="sm" onClick={saveNotes} className="shadow-subtle">Salvar Notas</Button>
         </CardContent>
       </Card>
     </div>

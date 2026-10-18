@@ -69,6 +69,13 @@ const ProjectsList = () => {
     setDeleteId(null);
   };
 
+  const statusCounts = {
+    all: projects.length,
+    em_andamento: projects.filter((p) => p.status === "em_andamento").length,
+    concluido: projects.filter((p) => p.status === "concluido").length,
+    pausado: projects.filter((p) => p.status === "pausado").length,
+  };
+
   const filtered = projects.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || p.status === statusFilter;
@@ -81,10 +88,10 @@ const ProjectsList = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Projetos</h1>
-          <p className="text-muted-foreground mt-1">Gerencie seus projetos e acompanhe o progresso</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Gestão de Projetos</h1>
+          <p className="text-sm text-muted-foreground mt-1">Gerencie seus projetos, etapas, prazos e acompanhe a lucratividade</p>
         </div>
-        <Button asChild>
+        <Button asChild className="shadow-subtle">
           <Link to="/projects/new">
             <Plus className="h-4 w-4 mr-2" />
             Novo Projeto
@@ -92,21 +99,55 @@ const ProjectsList = () => {
         </Button>
       </div>
 
-      {/* Filters */}
-      <Card className="shadow-card">
+      {/* Quick Status Pill Filters */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {[
+          { key: "all", label: "Todos", count: statusCounts.all },
+          { key: "em_andamento", label: "Em Andamento", count: statusCounts.em_andamento },
+          { key: "concluido", label: "Concluídos", count: statusCounts.concluido },
+          { key: "pausado", label: "Pausados", count: statusCounts.pausado },
+        ].map((item) => {
+          const isActive = statusFilter === item.key;
+          return (
+            <button
+              key={item.key}
+              onClick={() => setStatusFilter(item.key)}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer whitespace-nowrap border ${
+                isActive
+                  ? "bg-primary text-primary-foreground border-primary shadow-subtle"
+                  : "bg-card text-muted-foreground hover:text-foreground border-border/80 hover:bg-muted/50"
+              }`}
+            >
+              <span>{item.label}</span>
+              <span
+                className={`text-[10px] font-mono-numbers px-1.5 py-0.2 rounded-full ${
+                  isActive
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {item.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Filters Card */}
+      <Card className="shadow-card border-border/80">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Buscar por nome..." 
+                placeholder="Buscar por nome do projeto..." 
                 value={search} 
                 onChange={(e) => setSearch(e.target.value)} 
-                className="pl-9"
+                className="pl-9 bg-background"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full sm:w-48 bg-background">
                 <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -119,7 +160,7 @@ const ProjectsList = () => {
               </SelectContent>
             </Select>
             <Select value={clientFilter} onValueChange={setClientFilter}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full sm:w-48 bg-background">
                 <SelectValue placeholder="Cliente" />
               </SelectTrigger>
               <SelectContent>
@@ -134,30 +175,36 @@ const ProjectsList = () => {
       </Card>
 
       {/* Table */}
-      <Card className="shadow-card">
+      <Card className="shadow-card border-border/80">
         <CardContent className="p-0">
           <div className="rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="font-medium">Nome</TableHead>
-                  <TableHead className="font-medium">Cliente</TableHead>
-                  <TableHead className="font-medium">Status</TableHead>
-                  <TableHead className="font-medium">Lucratividade</TableHead>
-                  <TableHead className="font-medium">Prazo</TableHead>
-                  <TableHead className="font-medium text-right">Ações</TableHead>
+                <TableRow className="bg-muted/50 border-b border-border/80">
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Nome</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Cliente</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Lucratividade</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Prazo</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
-                      <div className="flex flex-col items-center gap-2">
-                        <p>Nenhum projeto encontrado</p>
-                        <Button asChild variant="outline" size="sm">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center">
+                          <Search className="h-6 w-6 text-muted-foreground/60" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">Nenhum projeto encontrado</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Tente ajustar seus filtros ou termo de busca</p>
+                        </div>
+                        <Button asChild variant="outline" size="sm" className="mt-2">
                           <Link to="/projects/new">
                             <Plus className="h-4 w-4 mr-2" />
-                            Criar primeiro projeto
+                            Criar novo projeto
                           </Link>
                         </Button>
                       </div>
@@ -165,11 +212,11 @@ const ProjectsList = () => {
                   </TableRow>
                 ) : (
                   filtered.map((p) => (
-                    <TableRow key={p.id} className="hover:bg-muted/30">
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell>{p.clients?.name || "—"}</TableCell>
+                    <TableRow key={p.id} className="hover:bg-muted/40 transition-colors">
+                      <TableCell className="font-medium text-foreground">{p.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{p.clients?.name || "—"}</TableCell>
                       <TableCell>
-                        <span className={`text-xs px-2.5 py-1 rounded-full border ${STATUS_COLORS[p.status]}`}>
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${STATUS_COLORS[p.status] || "bg-muted text-muted-foreground"}`}>
                           {STATUS_LABELS[p.status] || p.status}
                         </span>
                       </TableCell>
@@ -182,7 +229,7 @@ const ProjectsList = () => {
                             actualHours: p.actual_hours,
                           });
                           return (
-                            <span className={`text-xs px-2.5 py-1 rounded-full border ${getProfitabilityBadgeClasses(analysis.status)}`}>
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${getProfitabilityBadgeClasses(analysis.status)}`}>
                               {getProfitabilityLabel(analysis.status)}
                             </span>
                           );
@@ -190,11 +237,11 @@ const ProjectsList = () => {
                       </TableCell>
                       <TableCell>
                         {p.deadline ? (
-                          <span className="text-sm">
+                          <span className="text-sm font-mono-numbers text-foreground">
                             {format(new Date(p.deadline), "dd/MM/yyyy")}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground text-sm">—</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">

@@ -64,36 +64,66 @@ const ClientForm = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle>{isEdit ? "Editar Cliente" : "Novo Cliente"}</CardTitle>
+    <div className="max-w-2xl mx-auto pb-8">
+      <Card className="shadow-card border-border/80">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-bold tracking-tight">{isEdit ? "Editar Cliente" : "Novo Cliente"}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {isEdit ? "Atualize os dados de contato do cliente" : "Cadastre uma nova pessoa física ou jurídica na sua base"}
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Nome</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} required />
+              <Label className="text-sm font-medium">Nome Completo / Razão Social</Label>
+              <Input 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                required 
+                placeholder="Ex: João da Silva ou Empresa XYZ"
+                className="bg-background"
+              />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Label className="text-sm font-medium">Email de Contato</Label>
+              <Input 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="contato@cliente.com"
+                className="bg-background"
+              />
             </div>
             <div className="space-y-2">
-              <Label>Telefone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <Label className="text-sm font-medium">Telefone / WhatsApp</Label>
+              <Input 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value)} 
+                placeholder="(00) 00000-0000"
+                className="bg-background font-mono-numbers"
+              />
             </div>
             <div className="space-y-2">
-              <Label>Empresa</Label>
-              <Input value={company} onChange={(e) => setCompany(e.target.value)} />
+              <Label className="text-sm font-medium">Empresa</Label>
+              <Input 
+                value={company} 
+                onChange={(e) => setCompany(e.target.value)} 
+                placeholder="Nome da empresa do cliente"
+                className="bg-background"
+              />
             </div>
             <div className="space-y-2">
-              <Label>Observações</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <Label className="text-sm font-medium">Observações Internas</Label>
+              <Textarea 
+                value={notes} 
+                onChange={(e) => setNotes(e.target.value)} 
+                placeholder="Anotações particulares sobre este cliente..."
+                className="bg-background min-h-[80px]"
+              />
             </div>
-            <div className="flex gap-3">
-              <Button type="submit" disabled={loading}>
-                {loading ? "Salvando..." : "Salvar"}
+            <div className="flex gap-3 pt-4 border-t border-border/80">
+              <Button type="submit" disabled={loading} className="min-w-32 shadow-subtle">
+                {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Cadastrar Cliente"}
               </Button>
               <Button type="button" variant="outline" onClick={() => navigate("/clients")}>
                 Cancelar

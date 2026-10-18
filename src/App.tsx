@@ -15,6 +15,7 @@ import ProjectDetails from "./pages/ProjectDetails";
 import ClientsList from "./pages/ClientsList";
 import ClientForm from "./pages/ClientForm";
 import Calculator from "./pages/Calculator";
+import BudgetsList from "./pages/BudgetsList";
 import Billing from "./pages/Billing";
 import Parameters from "./pages/Parameters";
 import Settings from "./pages/Settings";
@@ -48,6 +49,7 @@ const AppRoutes = () => (
     <Route path="/clients/new" element={<ProtectedRoute><ClientForm /></ProtectedRoute>} />
     <Route path="/clients/:id/edit" element={<ProtectedRoute><ClientForm /></ProtectedRoute>} />
     <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
+    <Route path="/budgets" element={<ProtectedRoute><BudgetsList /></ProtectedRoute>} />
     <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
     <Route path="/parameters" element={<ProtectedRoute><Parameters /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
@@ -61,7 +63,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <AppRoutes />
           </AuthProvider>

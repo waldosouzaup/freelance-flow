@@ -57,24 +57,24 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  em_andamento: "bg-warning/10 text-warning border-warning/20",
-  concluido: "bg-success/10 text-success border-success/20",
-  pausado: "bg-muted text-muted-foreground border-border",
-  cancelado: "bg-destructive/10 text-destructive border-destructive/20",
+  em_andamento: "bg-warning/15 text-warning border-warning/30",
+  concluido: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
+  pausado: "bg-muted text-muted-foreground border-border/80",
+  cancelado: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
 const PIE_COLORS = [
-  "hsl(142 71% 45%)", // success - concluido
+  "hsl(160 84% 42%)", // emerald - concluido
   "hsl(38 92% 50%)",  // warning - em_andamento
-  "hsl(220 13% 69%)", // muted  - pausado
+  "hsl(215 16% 50%)", // muted  - pausado
   "hsl(0 84% 60%)",   // danger - cancelado
 ];
 
 const CHART_COLORS = {
-  primary: "hsl(214 90% 52%)",
-  success: "hsl(142 71% 45%)",
-  warning: "hsl(38 92% 50%)",
-  info: "hsl(199 89% 48%)",
+  primary: "hsl(var(--primary))",
+  success: "hsl(var(--success))",
+  warning: "hsl(var(--warning))",
+  info: "hsl(var(--accent))",
 };
 
 const Dashboard = () => {
@@ -184,14 +184,15 @@ const Dashboard = () => {
 
   const tooltipStyle = {
     backgroundColor: "hsl(var(--card))",
-    border: "1px solid hsl(var(--border))",
-    borderRadius: "8px",
-    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-    color: "hsl(var(--foreground))",
+    border: "1px solid hsl(var(--border) / 0.8)",
+    borderRadius: "12px",
+    boxShadow: "0 10px 25px -5px rgb(0 0 0 / 0.2)",
+    color: "hsl(var(--card-foreground))",
+    padding: "8px 12px",
   };
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-8" aria-label="Dashboard Principal">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -214,71 +215,75 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Stats Cards — Top Row */}
+      {/* Stats Cards — Top Row with Hero KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+        {/* Faturado — Hero KPI */}
+        <Card className="border-primary/40 bg-gradient-to-b from-card to-primary/[0.04] shadow-card hover:shadow-card-hover transition-all">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Total de Projetos</p>
-                <p className="text-3xl font-bold">{totalProjects}</p>
-                <p className="text-xs text-muted-foreground">{activeProjects} ativos agora</p>
-              </div>
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FolderKanban className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card hover:shadow-card-hover transition-shadow">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Faturado</p>
-                <p className="text-3xl font-bold">{formatCurrency(billedValue)}</p>
-                <p className="text-xs text-success flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Faturado Real</p>
+                <p className="text-3xl font-extrabold font-mono-numbers tracking-tight text-foreground">{formatCurrency(billedValue)}</p>
+                <p className="text-xs font-medium text-emerald-500 flex items-center gap-1">
+                  <TrendingUp className="h-3.5 w-3.5" />
                   {completedProjects} projetos concluídos
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-success/10 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-success" />
+              <div className="h-11 w-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center border border-primary/25 shadow-xs">
+                <DollarSign className="h-5 w-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+        {/* Em Andamento */}
+        <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Em Andamento</p>
-                <p className="text-3xl font-bold">{formatCurrency(pendingValue)}</p>
-                <p className="text-xs text-warning flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {activeProjects} projetos ativos
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Em Andamento</p>
+                <p className="text-3xl font-extrabold font-mono-numbers tracking-tight text-foreground">{formatCurrency(pendingValue)}</p>
+                <p className="text-xs font-medium text-amber-500 flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {activeProjects} ativos em execução
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Activity className="h-6 w-6 text-warning" />
+              <div className="h-11 w-11 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center border border-amber-500/25 shadow-xs">
+                <Activity className="h-5 w-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-card hover:shadow-card-hover transition-shadow">
+        {/* Total de Projetos */}
+        <Card className="shadow-card hover:shadow-card-hover transition-all">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Clientes</p>
-                <p className="text-3xl font-bold">{totalClients}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total de Projetos</p>
+                <p className="text-3xl font-extrabold font-mono-numbers tracking-tight text-foreground">{totalProjects}</p>
+                <p className="text-xs text-muted-foreground">{activeProjects} em andamento</p>
+              </div>
+              <div className="h-11 w-11 rounded-xl bg-accent/15 text-accent flex items-center justify-center border border-accent/25 shadow-xs">
+                <FolderKanban className="h-5 w-5" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Clientes */}
+        <Card className="shadow-card hover:shadow-card-hover transition-all">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Base de Clientes</p>
+                <p className="text-3xl font-extrabold font-mono-numbers tracking-tight text-foreground">{totalClients}</p>
                 <p className="text-xs text-muted-foreground">
-                  Ticket médio: {formatCurrency(avgProjectValue)}
+                  Ticket médio: <span className="font-mono-numbers font-medium">{formatCurrency(avgProjectValue)}</span>
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-info/10 flex items-center justify-center">
-                <Users className="h-6 w-6 text-info" />
+              <div className="h-11 w-11 rounded-xl bg-muted text-muted-foreground flex items-center justify-center border border-border shadow-xs">
+                <Users className="h-5 w-5" />
               </div>
             </div>
           </CardContent>
@@ -305,15 +310,15 @@ const Dashboard = () => {
                       <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 13% 91%)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.6)" vertical={false} />
                   <XAxis
                     dataKey="month"
-                    tick={{ fill: "hsl(220 10% 46%)", fontSize: 12 }}
-                    axisLine={{ stroke: "hsl(220 13% 91%)" }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    axisLine={{ stroke: "hsl(var(--border) / 0.6)" }}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
@@ -398,15 +403,15 @@ const Dashboard = () => {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyProjectData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 13% 91%)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.6)" vertical={false} />
                   <XAxis
                     dataKey="month"
-                    tick={{ fill: "hsl(220 10% 46%)", fontSize: 12 }}
-                    axisLine={{ stroke: "hsl(220 13% 91%)" }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    axisLine={{ stroke: "hsl(var(--border) / 0.6)" }}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: "hsl(220 10% 46%)", fontSize: 12 }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                     allowDecimals={false}
@@ -442,10 +447,10 @@ const Dashboard = () => {
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={clientRevenueData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 13% 91%)" horizontal={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.6)" horizontal={false} />
                     <XAxis
                       type="number"
-                      tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }}
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
@@ -453,7 +458,7 @@ const Dashboard = () => {
                     <YAxis
                       type="category"
                       dataKey="name"
-                      tick={{ fill: "hsl(220 10% 46%)", fontSize: 12 }}
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                       axisLine={false}
                       tickLine={false}
                       width={100}
@@ -609,7 +614,7 @@ const Dashboard = () => {
                     <RadialBar
                       dataKey="value"
                       cornerRadius={10}
-                      background={{ fill: "hsl(220 13% 91%)" }}
+                      background={{ fill: "hsl(var(--muted) / 0.8)" }}
                     />
                     <text
                       x="50%"

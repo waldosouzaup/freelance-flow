@@ -1,134 +1,141 @@
+/* Accessible design tokens with label and placeholder standards */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Google-inspired clean palette - Light Mode */
-    --background: 0 0% 98%;
-    --foreground: 220 15% 15%;
+    /* Fintech Executivo — Light Mode */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Primary - Google Blue */
-    --primary: 214 90% 52%;
+    /* Primary — Sharp Fintech Emerald */
+    --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Slate */
-    --secondary: 214 15% 93%;
-    --secondary-foreground: 220 15% 20%;
+    /* Secondary — Crisp Slate */
+    --secondary: 210 20% 94%;
+    --secondary-foreground: 222 47% 15%;
 
-    --muted: 214 15% 96%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 210 20% 95%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 214 15% 93%;
-    --accent-foreground: 220 15% 20%;
+    /* Accent — Precision Cyan */
+    --accent: 189 94% 43%;
+    --accent-foreground: 0 0% 100%;
 
     /* Status colors */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 214 90% 52%;
+    --info: 189 94% 43%;
     --info-foreground: 0 0% 100%;
 
     /* Borders and inputs */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 214 90% 52%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 160 84% 39%;
 
-    /* Radius - softer rounded corners */
-    --radius: 8px;
+    /* Radius — squircle modern aesthetic */
+    --radius: 0.625rem;
 
-    /* Sidebar */
+    /* Sidebar — Clean Light */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 15% 35%;
-    --sidebar-primary: 214 90% 52%;
+    --sidebar-foreground: 215 25% 27%;
+    --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 214 15% 96%;
-    --sidebar-accent-foreground: 220 15% 20%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 214 90% 52%;
+    --sidebar-accent: 210 20% 95%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 160 84% 39%;
 
-    /* Chart colors - Google palette */
+    /* Chart colors — Semantic Fintech */
+    --chart-emerald: 160 84% 39%;
+    --chart-cyan: 189 94% 43%;
     --chart-blue: 214 90% 52%;
     --chart-green: 142 71% 45%;
     --chart-yellow: 45 93% 58%;
+    --chart-amber: 38 92% 50%;
     --chart-red: 0 84% 60%;
     --chart-orange: 25 95% 53%;
-    --chart-purple: 262 83% 58%;
-    --chart-teal: 173 80% 45%;
+    --chart-teal: 173 80% 40%;
   }
 
   .dark {
-    /* Google-inspired Dark Mode palette */
-    --background: 224 20% 10%;
-    --foreground: 210 20% 95%;
+    /* Fintech Executivo — Dark Mode (Deep Obsidian / Zinc 950) */
+    --background: 240 10% 4%;
+    --foreground: 210 20% 98%;
 
-    --card: 224 20% 13%;
-    --card-foreground: 210 20% 95%;
+    --card: 240 6% 8%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 224 20% 13%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 240 6% 9%;
+    --popover-foreground: 210 20% 98%;
 
-    /* Primary - Google Blue (slightly brighter in dark) */
-    --primary: 214 90% 60%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary — Luminous Emerald */
+    --primary: 160 84% 45%;
+    --primary-foreground: 240 10% 4%;
 
-    /* Secondary - Dark slate */
-    --secondary: 220 15% 20%;
-    --secondary-foreground: 210 20% 95%;
+    /* Secondary — Deep Charcoal */
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 215 15% 60%;
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 220 15% 20%;
-    --accent-foreground: 210 20% 95%;
+    /* Accent — Electric Cyan */
+    --accent: 189 94% 48%;
+    --accent-foreground: 240 10% 4%;
 
     /* Status colors */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
+    --success: 160 84% 45%;
+    --success-foreground: 240 10% 4%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 214 90% 60%;
-    --info-foreground: 0 0% 100%;
+    --info: 189 94% 48%;
+    --info-foreground: 240 10% 4%;
 
-    /* Borders and inputs */
-    --border: 220 15% 22%;
-    --input: 220 15% 22%;
-    --ring: 214 90% 60%;
+    /* Borders and inputs — Crisp, visible definition */
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
+    --ring: 160 84% 45%;
 
-    /* Sidebar - Dark */
-    --sidebar-background: 224 20% 8%;
-    --sidebar-foreground: 210 20% 75%;
-    --sidebar-primary: 214 90% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 16%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 15% 18%;
-    --sidebar-ring: 214 90% 60%;
+    /* Sidebar — Deep Obsidian */
+    --sidebar-background: 240 8% 6%;
+    --sidebar-foreground: 240 5% 75%;
+    --sidebar-primary: 160 84% 45%;
+    --sidebar-primary-foreground: 240 10% 4%;
+    --sidebar-accent: 240 5% 12%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 240 5% 15%;
+    --sidebar-ring: 160 84% 45%;
 
-    /* Chart colors - adjusted for dark */
+    /* Chart colors — adjusted for dark mode */
+    --chart-emerald: 160 84% 48%;
+    --chart-cyan: 189 94% 50%;
     --chart-blue: 214 90% 60%;
-    --chart-green: 142 71% 50%;
-    --chart-yellow: 45 93% 60%;
-    --chart-red: 0 84% 60%;
-    --chart-orange: 25 95% 58%;
-    --chart-purple: 262 83% 65%;
+    --chart-green: 142 71% 52%;
+    --chart-yellow: 45 93% 62%;
+    --chart-amber: 38 92% 54%;
+    --chart-red: 0 84% 62%;
+    --chart-orange: 25 95% 60%;
     --chart-teal: 173 80% 50%;
   }
 }
@@ -139,17 +146,21 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Google Sans', 'Roboto', system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
-/* Custom scrollbar - Google style */
+/* Custom numbers utility */
+.font-mono-numbers {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom scrollbar — sleek minimal */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -157,27 +168,16 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(220 13% 85%);
-  border-radius: 4px;
+  background: hsl(var(--muted-foreground) / 0.25);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(220 13% 75%);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: hsl(220 15% 30%);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: hsl(220 15% 40%);
+  background: hsl(var(--muted-foreground) / 0.45);
 }
 
 /* Selection */
 ::selection {
-  background: hsl(214 90% 52% / 0.2);
-}
-
-.dark ::selection {
-  background: hsl(214 90% 60% / 0.3);
+  background: hsl(var(--primary) / 0.25);
+  color: hsl(var(--foreground));
 }

@@ -204,20 +204,29 @@ const ProjectForm = () => {
 
   return (
     <div className="max-w-2xl mx-auto pb-8">
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>{isEdit ? "Editar Projeto" : "Novo Projeto"}</CardTitle>
+      <Card className="shadow-card border-border/80">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-bold tracking-tight">{isEdit ? "Editar Projeto" : "Novo Projeto"}</CardTitle>
+          <CardDescription>
+            {isEdit ? "Atualize os dados, escopo e parâmetros do projeto" : "Preencha as informações para iniciar o acompanhamento"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label>Nome do Projeto</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} required />
+              <Label className="text-sm font-medium">Nome do Projeto</Label>
+              <Input 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                required 
+                placeholder="Ex: Redesign E-commerce, Manutenção Servidor..."
+                className="bg-background"
+              />
             </div>
             <div className="space-y-2">
-              <Label>Cliente</Label>
+              <Label className="text-sm font-medium">Cliente</Label>
               <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
+                <SelectTrigger className="bg-background"><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
                 <SelectContent>
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -226,24 +235,41 @@ const ProjectForm = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Descrição</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+              <Label className="text-sm font-medium">Descrição</Label>
+              <Textarea 
+                value={description} 
+                onChange={(e) => setDescription(e.target.value)} 
+                placeholder="Detalhes ou escopo do trabalho..."
+                className="bg-background min-h-[80px]"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Receita Estimada (R$)</Label>
-                <Input type="number" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} />
+                <Label className="text-sm font-medium">Receita Estimada (R$)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  value={value} 
+                  onChange={(e) => setValue(e.target.value)} 
+                  placeholder="0,00"
+                  className="bg-background font-mono-numbers"
+                />
               </div>
               <div className="space-y-2">
-                <Label>Prazo</Label>
-                <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+                <Label className="text-sm font-medium">Prazo de Entrega</Label>
+                <Input 
+                  type="date" 
+                  value={deadline} 
+                  onChange={(e) => setDeadline(e.target.value)} 
+                  className="bg-background font-mono-numbers"
+                />
               </div>
             </div>
             {isEdit && (
               <div className="space-y-2">
-                <Label>Status</Label>
+                <Label className="text-sm font-medium">Status do Projeto</Label>
                 <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="em_andamento">Em Andamento</SelectItem>
                     <SelectItem value="concluido">Concluído</SelectItem>
@@ -254,8 +280,13 @@ const ProjectForm = () => {
               </div>
             )}
             <div className="space-y-2">
-              <Label>Links úteis (um por linha)</Label>
-              <Textarea value={links} onChange={(e) => setLinks(e.target.value)} placeholder="https://..." />
+              <Label className="text-sm font-medium">Links úteis (um por linha)</Label>
+              <Textarea 
+                value={links} 
+                onChange={(e) => setLinks(e.target.value)} 
+                placeholder="https://github.com/...&#10;https://figma.com/..." 
+                className="bg-background min-h-[70px] font-mono text-xs"
+              />
             </div>
 
             {/* Financial Data Section */}
@@ -411,22 +442,22 @@ const ProjectForm = () => {
                   <span className="text-muted-foreground">Progresso:</span>
                   <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary transition-all"
+                      className="h-full bg-emerald-500 transition-all duration-300"
                       style={{
                         width: `${stages.filter(s => s.completed).length / stages.length * 100}%`,
                       }}
                     />
                   </div>
-                  <span className="font-medium">
+                  <span className="font-semibold font-mono-numbers text-primary">
                     {stages.filter(s => s.completed).length}/{stages.length}
                   </span>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={loading}>
-                {loading ? "Salvando..." : "Salvar"}
+            <div className="flex gap-3 pt-4 border-t border-border/80">
+              <Button type="submit" disabled={loading} className="min-w-32 shadow-subtle">
+                {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Criar Projeto"}
               </Button>
               <Button type="button" variant="outline" onClick={() => navigate("/projects")}>
                 Cancelar
