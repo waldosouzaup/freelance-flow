@@ -595,7 +595,7 @@ export const MaintenanceCalculator = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm">Número de Série / Tag</Label>
                 <Input
@@ -667,6 +667,17 @@ export const MaintenanceCalculator = ({
                     </Command>
                   </PopoverContent>
                 </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm">Telefone do Cliente</Label>
+                <Input
+                  type="tel"
+                  placeholder="(00) 00000-0000"
+                  value={clientPhone}
+                  onChange={(e) => setClientPhone(e.target.value)}
+                  className="bg-background"
+                />
               </div>
 
               <div className="space-y-2">
