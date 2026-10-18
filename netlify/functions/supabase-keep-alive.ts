@@ -1,6 +1,6 @@
 import { schedule, Handler } from "@netlify/functions";
 
-const handler: Handler = async () => {
+const keepAliveHandler: Handler = async () => {
   const supabaseUrl =
     process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseKey =
@@ -69,6 +69,5 @@ const handler: Handler = async () => {
   }
 };
 
-// Schedule to run once a day (@daily = 00:00 UTC)
-export { handler };
-export const scheduledHandler = schedule("@daily", handler);
+// Schedule to run once a day (@daily / 00:00 UTC)
+export const handler = schedule("@daily", keepAliveHandler);
