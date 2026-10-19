@@ -22,20 +22,22 @@ import {
   Check,
   CheckCircle2,
   Clock,
-  Building,
-  User,
   ExternalLink,
   Loader2,
   Paperclip,
+  Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   generateBudgetPdf,
   generateMaintenanceBudgetPdf,
+  getBudgetPdfBase64,
   BudgetData,
   MaintenanceBudgetData,
 } from "@/lib/generateBudgetPdf";
+import { sendBudgetEmail } from "@/services/emailService";
 
 interface BudgetRecord {
   id: string;
@@ -69,6 +71,7 @@ export const SendBudgetEmailModal: React.FC<SendBudgetEmailModalProps> = ({
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sendingResend, setSendingResend] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -105,7 +108,7 @@ Segue a proposta comercial referente ao orçamento ${budget.budget_number} (${bu
 • Status: Aguardando sua validação
 • Validade da Proposta: 15 a 30 dias
 
-O orçamento detalhado em formato PDF está gerado e disponível para formalização.
+O orçamento detalhado em formato PDF de 1 página está gerado e anexado para sua formalização.
 Ficamos à disposição para esclarecer quaisquer dúvidas técnicas ou de prazos.
 
 Atenciosamente,
@@ -144,7 +147,86 @@ ${phone ? `Contato / WhatsApp: ${phone}` : ""}`.trim();
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRecordSend = async () => {
+  // 1. Direct Background Dispatch via Resend API with PDF attached
+  const handleSendViaResend = async () => {
+    if (!recipientEmail || !recipientEmail.includes("@")) {
+      toast.error("Por favor, informe um e-mail de destinatário válido.");
+      return;
+    }
+
+    setSendingResend(true);
+    try {
+      toast.loading("Gerando PDF e enviando via Resend...", { id: "resend-send" });
+
+      const bData = { ...(budget.budget_data || {}) };
+      // Generate single-page PDF as Base64 in memory
+      const pdfData = await getBudgetPdfBase64(bData);
+
+      // Call Resend Serverless endpoint
+      const result = await sendBudgetEmail({
+        to: recipientEmail.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+        senderName: senderName.trim(),
+        pdfBase64: pdfData.base64,
+        filename: pdfData.filename,
+      });
+
+      if (!result.success) {
+        toast.dismiss("resend-send");
+        toast.error(result.error || "Erro ao disparar via Resend.", {
+          duration: 6000,
+        });
+        return;
+      }
+
+      // Record send date in Supabase budgets table
+      const sentAt = new Date().toISOString();
+      await supabase
+        .from("budgets")
+        .update({
+          email_sent_at: sentAt,
+          client_email: recipientEmail.trim(),
+        })
+        .eq("id", budget.id);
+
+      toast.dismiss("resend-send");
+      toast.success(`Orçamento com PDF anexado enviado com sucesso para ${recipientEmail}!`);
+      onSuccess();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.dismiss("resend-send");
+      console.error("Resend send error:", err);
+      toast.error(`Falha no envio: ${err.message || "Erro desconhecido"}`);
+    } finally {
+      setSendingResend(false);
+    }
+  };
+
+  // 2. Open Mail Client (mailto:) fallback
+  const handleOpenMailClient = async () => {
+    const encodedSubject = encodeURIComponent(subject);
+    const encodedBody = encodeURIComponent(message);
+    const mailtoUrl = `mailto:${recipientEmail}?subject=${encodedSubject}&body=${encodedBody}`;
+    window.open(mailtoUrl, "_blank");
+
+    // Record send timestamp
+    const sentAt = new Date().toISOString();
+    await supabase
+      .from("budgets")
+      .update({
+        email_sent_at: sentAt,
+        client_email: recipientEmail.trim() || null,
+      })
+      .eq("id", budget.id);
+
+    toast.success("Cliente de e-mail aberto e envio registrado!");
+    onSuccess();
+    onOpenChange(false);
+  };
+
+  // 3. Just record send timestamp
+  const handleRecordSendOnly = async () => {
     setLoading(true);
     try {
       const sentAt = new Date().toISOString();
@@ -158,9 +240,7 @@ ${phone ? `Contato / WhatsApp: ${phone}` : ""}`.trim();
 
       if (error) throw error;
 
-      toast.success(
-        `Envio registrado com sucesso para ${recipientEmail || budget.client_name}!`
-      );
+      toast.success(`Registro de envio salvo com sucesso!`);
       onSuccess();
       onOpenChange(false);
     } catch (err) {
@@ -169,16 +249,6 @@ ${phone ? `Contato / WhatsApp: ${phone}` : ""}`.trim();
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleOpenMailClient = () => {
-    const encodedSubject = encodeURIComponent(subject);
-    const encodedBody = encodeURIComponent(message);
-    const mailtoUrl = `mailto:${recipientEmail}?subject=${encodedSubject}&body=${encodedBody}`;
-    window.open(mailtoUrl, "_blank");
-
-    // Also prompt or register send automatically
-    handleRecordSend();
   };
 
   return (
@@ -293,7 +363,7 @@ ${phone ? `Contato / WhatsApp: ${phone}` : ""}`.trim();
                 id="send-message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                rows={7}
+                rows={6}
                 className="bg-background text-xs font-sans leading-relaxed resize-none"
               />
             </div>
@@ -309,7 +379,7 @@ ${phone ? `Contato / WhatsApp: ${phone}` : ""}`.trim();
                     Orçamento_{budget.budget_number}.pdf
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    Documento de 1 página pronto para anexar
+                    Anexado automaticamente no envio via Resend
                   </p>
                 </div>
               </div>
@@ -343,31 +413,31 @@ ${phone ? `Contato / WhatsApp: ${phone}` : ""}`.trim();
             Cancelar
           </Button>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={handleOpenMailClient}
-              className="gap-1.5 text-xs w-full sm:w-auto shadow-subtle"
+              className="gap-1.5 text-xs shadow-subtle"
             >
-              <ExternalLink className="h-3.5 w-3.5 text-primary" />
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
               Abrir no E-mail (mailto)
             </Button>
 
             <Button
               type="button"
               size="sm"
-              disabled={loading}
-              onClick={handleRecordSend}
-              className="gap-1.5 text-xs w-full sm:w-auto shadow-subtle bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={sendingResend}
+              onClick={handleSendViaResend}
+              className="gap-1.5 text-xs shadow-subtle bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
             >
-              {loading ? (
+              {sendingResend ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Send className="h-3.5 w-3.5" />
+                <Sparkles className="h-3.5 w-3.5" />
               )}
-              {budget.email_sent_at ? "Atualizar Registro de Envio" : "Salvar Registro de Envio"}
+              Disparar pelo Resend
             </Button>
           </div>
         </DialogFooter>

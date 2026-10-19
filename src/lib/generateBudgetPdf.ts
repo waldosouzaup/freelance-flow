@@ -407,7 +407,11 @@ function renderRichBoxText(
   }
 }
 
-async function renderSinglePageInvoice(data: CommonBudgetData, filename: string): Promise<void> {
+async function renderSinglePageInvoice(
+  data: CommonBudgetData,
+  filename: string,
+  options: { save?: boolean } = { save: true }
+): Promise<string> {
   // A4 portrait dimensions in mm: 210 x 297
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const margin = 14;
@@ -978,14 +982,21 @@ async function renderSinglePageInvoice(data: CommonBudgetData, filename: string)
   doc.setTextColor(...mutedColor);
   doc.text("Página 1 de 1", rightMargin, footerY, { align: "right" });
 
-  // Save PDF (Strictly 1 page)
-  doc.save(filename);
+  // Save PDF if requested (Strictly 1 page)
+  if (options.save !== false) {
+    doc.save(filename);
+  }
+  const dataUri = doc.output("datauristring");
+  return dataUri.split(",")[1] || "";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EXPORT: MAINTENANCE BUDGET PDF (SINGLE PAGE)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function generateMaintenanceBudgetPdf(data: MaintenanceBudgetData): Promise<void> {
+export async function generateMaintenanceBudgetPdf(
+  data: MaintenanceBudgetData,
+  options: { save?: boolean } = { save: true }
+): Promise<{ base64: string; filename: string }> {
   const items: TableItem[] = [];
 
   // Main maintenance service item
@@ -1077,13 +1088,17 @@ export async function generateMaintenanceBudgetPdf(data: MaintenanceBudgetData):
 
   const cleanClient = data.clientName.replace(/\s+/g, "_");
   const filename = `${data.budgetNumber}_${cleanClient}_Manutencao.pdf`;
-  await renderSinglePageInvoice(commonData, filename);
+  const base64 = await renderSinglePageInvoice(commonData, filename, options);
+  return { base64, filename };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EXPORT: SERVICE BUDGET PDF (SINGLE PAGE)
 // ─────────────────────────────────────────────────────────────────────────────
-export async function generateBudgetPdf(data: BudgetData): Promise<void> {
+export async function generateBudgetPdf(
+  data: BudgetData,
+  options: { save?: boolean } = { save: true }
+): Promise<{ base64: string; filename: string }> {
   const items: TableItem[] = [];
 
   // Main project service item
@@ -1177,7 +1192,8 @@ export async function generateBudgetPdf(data: BudgetData): Promise<void> {
 
   const cleanClient = data.clientName.replace(/\s+/g, "_");
   const filename = `${data.budgetNumber}_${cleanClient}.pdf`;
-  await renderSinglePageInvoice(commonData, filename);
+  const base64 = await renderSinglePageInvoice(commonData, filename, options);
+  return { base64, filename };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1188,5 +1204,15 @@ export async function exportBudgetPdf(data: BudgetData | MaintenanceBudgetData):
     await generateMaintenanceBudgetPdf(data as MaintenanceBudgetData);
   } else {
     await generateBudgetPdf(data as BudgetData);
+  }
+}
+
+export async function getBudgetPdfBase64(
+  data: BudgetData | MaintenanceBudgetData
+): Promise<{ base64: string; filename: string }> {
+  if ("budget_type" in data && data.budget_type === "maintenance") {
+    return generateMaintenanceBudgetPdf(data as MaintenanceBudgetData, { save: false });
+  } else {
+    return generateBudgetPdf(data as BudgetData, { save: false });
   }
 }
