@@ -1,7 +1,7 @@
 # Freelance Flow: Plataforma Estratégica de Precificação, Gestão Comercial e Operação
 
 > **Projeto de Portfólio de Engenharia de Software & Design de Produto**  
-> *Uma solução full-stack moderna desenvolvida para transformar a precificação, o ciclo de vida comercial e a governança operacional de profissionais independentes, consultorias e empresas de assistência técnica.*
+> _Uma solução full-stack moderna desenvolvida para transformar a precificação, o ciclo de vida comercial e a governança operacional de profissionais independentes, consultorias e empresas de assistência técnica._
 
 [![React 18](https://img.shields.io/badge/React-18.3-blue.svg?logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -18,16 +18,21 @@
 No ecossistema de serviços autônomos, consultorias especializadas e oficinas técnicas, a rentabilidade e a escalabilidade do negócio são frequentemente sabotadas por falhas estruturais na etapa comercial:
 
 ### A. A Armadilha da Precificação Empírica ("Chutes")
+
 A grande maioria dos prestadores de serviço calcula seus orçamentos de maneira intuitiva ou baseada em médias rasas de mercado. Esse modelo ignora componentes determinantes de formação de preço:
+
 - **Custos Indiretos e Operacionais**: Ferramental, licenças de software, servidores cloud, deslocamentos, fretes e insumos de oficina.
 - **Incidência Tributária Efetiva**: Muitos profissionais esquecem que notas fiscais e impostos incidem sobre o faturamento bruto, terminando por pagar tributos da própria margem líquida.
 - **Margens de Risco e Manutenção**: Falta de separação clara entre horas de mão de obra técnica e peças de reposição com valores unitários.
 
 ### B. Fragmentação Operacional e Falta de Rastreabilidade
+
 A jornada do profissional é caótica: contatos em listas de telefone ou planilhas desconexas, descrições de defeitos anotadas em conversas de aplicativos, orçamentos gerados em editores de texto sem histórico e projetos gerenciados mentalmente. Orçamentos enviados se perdem no vácuo comercial sem controle de funil (aguardando, aprovado ou rejeitado).
 
 ### C. Apresentação Comercial Amadora e Atrito no Recebimento
+
 Propostas comerciais improvisadas transmitem insegurança técnica, depreciando a percepção de valor do cliente final. Além disso, propostas tradicionais sofrem de:
+
 - Dispersão em múltiplas páginas com diagramação quebrada e áreas em branco.
 - Falta de termos explícitos de **Garantia** e **Prazos Estimados de Entrega** em local de destaque.
 - **Fricção de Pagamento**: Após o aceite, o cliente ainda precisa solicitar dados bancários, ampliando o tempo de fechamento e gerando inadimplência.
@@ -72,7 +77,7 @@ flowchart TD
 
 1. **Motor de Precificação Híbrido**:
    - **Módulo de Serviços Intelectuais / Digitais**: Cálculo por horas projetadas, índice de complexidade, despesas operacionais e alíquotas tributárias.
-   - **Módulo de Assistência Técnica & Manutenção**: Registro de marca, modelo, número de série/tag, modalidade de mão de obra (fixa ou horária), listagem granular de peças de reposição e campos com suporte a texto rico (negrito com `**texto**` e parágrafos estruturados) para o *Defeito Relatado* e o *Laudo Técnico*.
+   - **Módulo de Assistência Técnica & Manutenção**: Registro de marca, modelo, número de série/tag, modalidade de mão de obra (fixa ou horária), listagem granular de peças de reposição e campos com suporte a texto rico (negrito com `**texto**` e parágrafos estruturados) para o _Defeito Relatado_ e o _Laudo Técnico_.
 2. **Ciclo de Vida de Orçamentos (CRUD Completo)**:
    - Monitoramento analítico do volume financeiro total, volume em negociação e volume aprovado.
    - Possibilidade de editar propostas antes da aprovação para acomodar renegociações sem retrabalho.
@@ -85,6 +90,16 @@ flowchart TD
    - **QR Code Pix Dinâmico Embutido**: Geração nativa de payload EMV/Banco Central com CRC-16 para pagamento imediato na leitura do documento.
 4. **Painel Tático de Produtividade**:
    - Dashboard com fluxo de caixa projetado, prazos críticos em contagem regressiva e métricas visuais de desempenho.
+5. **Módulo de Controle de Estoque & Peças (Kardex)**:
+   - Catálogo de componentes com preço de custo, preço de venda, localização física e alerta de estoque mínimo.
+   - **Baixa automática** das peças no momento em que um orçamento é aprovado e estorno automático em cancelamento.
+   - Integração direta com a Calculadora de Manutenção com auto-preenchimento de valores e indicação de saldo.
+6. **Portal do Cliente (Client Hub)**:
+   - Link público seguro gerado por token criptográfico (`/hub/:token`) para o contratante acompanhar em tempo real o status de reparo ou os marcos de entrega de seu projeto.
+   - Visualização do laudo técnico, prazos, download da proposta e QR Code Pix dinâmico integrado para pagamento direto.
+7. **DRE Automatizado & Gestão de OPEX**:
+   - Demonstração do Resultado do Exercício calculada por regime de competência (Receita Bruta, Deduções Tributárias, CPV/CMV de Peças, Lucro Bruto, OPEX e Lucro Líquido Real).
+   - Gerenciamento de despesas operacionais fixas recorrentes e avulsas com exportação/impressão em padrão contábil.
 
 ---
 
@@ -92,12 +107,12 @@ flowchart TD
 
 O Freelance Flow é projetado para atuar em diversos modelos de prestação de serviços com demandas comerciais rigorosas:
 
-| Segmento | Desafio Típico do Negócio | Como o Freelance Flow Soluciona |
-|---|---|---|
-| **Engenharia de Software, Design & Consultorias Digitais** | Escopos mutáveis, horas subestimadas e custos ocultos de cloud/licenças que corroem a margem líquida. | Decomposição paramétrica por tempo, complexidade e custos adicionais, garantindo proteção contra o autossabotamento de preços. |
-| **Assistências Técnicas & Manutenção de Hardware** | Equipamentos recebidos sem rastreabilidade de defeito, falta de histórico de peças trocadas e disputas sobre garantia. | Registro do número de série/tag, laudo técnico detalhado, termos de garantia expressos no topo do documento e listagem transparente de peças. |
-| **Negociações Comerciais Remotas (WhatsApp / E-mail)** | Propostas longas que o tomador de serviços não lê, postergando o fechamento da negociação. | O PDF de página única entrega uma visualização executiva instantânea e permite o pagamento imediato via QR Code Pix no próprio documento. |
-| **Pequenas Agências & Estúdios** | Dificuldade em transitar do aceite da proposta para a execução sem perder notas de escopo. | Conversão em 1 clique transforma o orçamento aprovado em projeto ativo na esteira, preservando o valor fechado e os prazos. |
+| Segmento                                                   | Desafio Típico do Negócio                                                                                              | Como o Freelance Flow Soluciona                                                                                                               |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Engenharia de Software, Design & Consultorias Digitais** | Escopos mutáveis, horas subestimadas e custos ocultos de cloud/licenças que corroem a margem líquida.                  | Decomposição paramétrica por tempo, complexidade e custos adicionais, garantindo proteção contra o autossabotamento de preços.                |
+| **Assistências Técnicas & Manutenção de Hardware**         | Equipamentos recebidos sem rastreabilidade de defeito, falta de histórico de peças trocadas e disputas sobre garantia. | Registro do número de série/tag, laudo técnico detalhado, termos de garantia expressos no topo do documento e listagem transparente de peças. |
+| **Negociações Comerciais Remotas (WhatsApp / E-mail)**     | Propostas longas que o tomador de serviços não lê, postergando o fechamento da negociação.                             | O PDF de página única entrega uma visualização executiva instantânea e permite o pagamento imediato via QR Code Pix no próprio documento.     |
+| **Pequenas Agências & Estúdios**                           | Dificuldade em transitar do aceite da proposta para a execução sem perder notas de escopo.                             | Conversão em 1 clique transforma o orçamento aprovado em projeto ativo na esteira, preservando o valor fechado e os prazos.                   |
 
 ---
 
@@ -161,20 +176,25 @@ freelance-flow/
 Para posicionar o Freelance Flow como uma ferramenta de padrão empresarial, foram adotadas diretrizes arquiteturais e de design intencionais:
 
 ### 1. A Regra de Ouro da Página Única (Single-Page Invariant)
+
 No mercado corporativo e comercial, documentos extensos geram fricção cognitiva. Propostas comerciais eficazes devem ser lidas, compreendidas e aceitas em menos de 60 segundos. O motor de PDF foi construído com limites rígidos de rodapé (`maxFooterLimit = 280mm`), cálculos dinâmicos de quebra de parágrafos e alocação de dados de contato e garantias no topo, assegurando que **nenhum orçamento ultrapasse uma única folha A4**.
 
 ### 2. Engenharia Financeira de Faturamento Bruto
+
 A maioria dos softwares de orçamento comete o erro elementar de somar despesas e adicionar um percentual simples sobre a base. O Freelance Flow adota a fórmula de precificação financeira de faturamento bruto:
 $$\text{Preço Final} = \frac{\text{Custo Operacional Total} + \text{Margem de Lucro Alvo}}{1 - \text{Alíquota de Tributos}}$$
 Isso impede que a empresa absorva o custo dos impostos da própria margem líquida, garantindo rentabilidade real e previsível.
 
 ### 3. Design System com Identidade "Sharp Technical"
+
 Rejeitou-se explicitamente o padrão estético saturado de SaaS genéricos (ausência intencional de tons violeta/roxo e bento-grids confusas). O produto implementa:
+
 - Paleta profissional baseada em tons sóbrios (`Slate`, `Zinc`) e acentos pontuais em `Emerald` para indicadores financeiros positivos.
 - Bordas de raio reduzido (`rounded-sm`), conferindo robustez e precisão semelhante a terminais de alta performance e ferramentas financeiras profissionais.
-- Tipografia baseada na família *Inter*, otimizada para tabelas de densidade de dados e clareza de leitura numérica.
+- Tipografia baseada na família _Inter_, otimizada para tabelas de densidade de dados e clareza de leitura numérica.
 
 ### 4. Continuidade de Esteira de Valor
+
 A plataforma elimina a desconexão comum entre comercial e operação. O fluxo **Precificação $\rightarrow$ Proposta Comercial $\rightarrow$ Pagamento $\rightarrow$ Projeto em Execução** é contínuo, reduzindo o tempo administrativo em mais de 80%.
 
 ---
@@ -198,28 +218,28 @@ Como roadmap de evolução contínua da plataforma, estão mapeadas as seguintes
 ```mermaid
 timeline
     title Roadmap de Evolução Técnica
-    Fase Atual : Calculadora Dual (Serviços + Manutenção)
-               : Motor PDF Single-Page com Pix EMV
-               : CRUD Completo de Orçamentos com Conversão
-    Próxima Etapa : Webhooks de Gateways de Pagamento (Conciliação Pix Automática)
-                  : Assinatura Eletrônica no PDF com Hash Criptográfico
-    Médio Prazo   : Módulo de Controle de Estoque de Peças de Reposição
-                  : Portal do Cliente com Acompanhamento em Tempo Real
-    Longo Prazo   : Relatórios Financeiros DRE & Projeção de Fluxo de Caixa
-                  : Aplicativo Mobile PWA com Leitura de Código de Barras de Peças
+    Fase 1 (Concluída) : Calculadora Dual (Serviços + Manutenção)
+                       : Motor PDF Single-Page com Pix EMV
+                       : CRUD Completo de Orçamentos com Conversão
+    Fase 2 (Concluída) : Módulo de Controle de Estoque & Baixa Automática
+                       : Portal do Cliente (Client Hub) em Tempo Real
+                       : DRE & Relatórios Contábeis por Competência
+    Próximas Etapas    : Webhooks de Gateways de Pagamento (Conciliação Pix)
+                       : Assinatura Eletrônica no PDF com Hash Criptográfico
+                       : Aplicativo Mobile PWA com Leitura de Código de Barras
 ```
 
-1. **Conciliação Automática de Pagamentos Pix**: Integração via webhooks com instituições financeiras para confirmação automática de recebimento de sinal ou liquidação integral de orçamentos.
-2. **Assinatura Eletrônica Integrada**: Módulo de aceite formal direto na proposta com geração de hash criptográfico (SHA-256), registro de IP e carimbo de data/hora para validade jurídica.
-3. **Módulo de Controle de Estoque**: Para oficinas e assistências técnicas, baixa automática no estoque de peças ao incluir itens em orçamentos aprovados.
-4. **Portal do Cliente (Client Hub)**: Link público seguro para que o contratante acompanhe em tempo real o status de reparo do seu equipamento ou os marcos de entrega de seu projeto.
-5. **DRE & Relatórios Contábeis**: Geração automatizada de Demonstração do Resultado do Exercício com base nos projetos concluídos e despesas operacionais registradas.
+1. **[Concluído] Módulo de Controle de Estoque**: Para oficinas e assistências técnicas, com baixa automática no estoque de peças ao aprovar orçamentos, auto-cadastro de novos itens e estorno em cancelamentos.
+2. **[Concluído] Portal do Cliente (Client Hub)**: Link público seguro por token (`/hub/:token`) para o contratante acompanhar em tempo real o status de reparo do seu equipamento ou os marcos de entrega de seu projeto.
+3. **[Concluído] DRE & Relatórios Contábeis**: Geração automatizada de Demonstração do Resultado do Exercício com base nos projetos concluídos, CMV de peças baixadas e despesas operacionais (OPEX) registradas.
+4. **Conciliação Automática de Pagamentos Pix**: Integração via webhooks com instituições financeiras para confirmação automática de recebimento de sinal ou liquidação integral de orçamentos.
+5. **Assinatura Eletrônica Integrada**: Módulo de aceite formal direto na proposta com geração de hash criptográfico (SHA-256), registro de IP e carimbo de data/hora para validade jurídica.
 
 ---
 
 ## 8. Considerações Finais
 
-O **Freelance Flow** demonstra a convergência entre rigor de engenharia de software full-stack, modelagem matemática aplicada aos negócios e design de produto centrado no usuário. 
+O **Freelance Flow** demonstra a convergência entre rigor de engenharia de software full-stack, modelagem matemática aplicada aos negócios e design de produto centrado no usuário.
 
 Longe de ser apenas um formulário de cadastro ou uma calculadora estática, o projeto resolve com profundidade a dor real de precificação e formalização comercial enfrentada diariamente por quem opera seu próprio negócio. Cada decisão — desde o isolamento de dados via **Row Level Security** no PostgreSQL até o algoritmo que garante a **invariante de página única no PDF** — foi tomada priorizando a confiabilidade, a velocidade operacional e a dignidade do trabalho técnico e autônomo.
 
@@ -249,6 +269,7 @@ npm run build
 ---
 
 ## 👨‍💻 Autor & Portfólio
+
 - **Desenvolvedor**: Waldo Souza
 - **Repositório GitHub**: [waldosouzaup/freelance-flow](https://github.com/waldosouzaup/freelance-flow)
 - **Licença**: [MIT License](LICENSE)

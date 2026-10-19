@@ -46,6 +46,7 @@ import {
   Wrench,
   Layers,
   AlertTriangle,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -56,6 +57,9 @@ import {
 } from "@/lib/generateBudgetPdf";
 import type { BudgetData } from "@/types/budget";
 import type { MaintenanceBudgetData } from "@/types/maintenance";
+import { depleteBudgetStock, restockBudgetStock } from "@/services/inventoryService";
+import { ClientHubModal } from "@/components/clientHub/ClientHubModal";
+import { SendBudgetEmailModal } from "@/components/budgets/SendBudgetEmailModal";
 
 interface BudgetRecord {
   id: string;
@@ -66,6 +70,7 @@ interface BudgetRecord {
   project_name: string;
   total_value: number;
   budget_data: any;
+  email_sent_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -110,6 +115,12 @@ export default function BudgetsList() {
   const [convertTarget, setConvertTarget] = useState<BudgetRecord | null>(null);
   const [isConverting, setIsConverting] = useState(false);
 
+  // Send Email State
+  const [sendEmailTarget, setSendEmailTarget] = useState<BudgetRecord | null>(null);
+
+  // Client Hub Modal State
+  const [hubTarget, setHubTarget] = useState<BudgetRecord | null>(null);
+
   // Download PDF loading state per budget
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
@@ -140,6 +151,10 @@ export default function BudgetsList() {
 
   // Status Change
   const handleStatusChange = async (budgetId: string, newStatus: "aguardando" | "aprovado" | "cancelado") => {
+    if (!user) return;
+    const currentBudget = budgets.find((b) => b.id === budgetId);
+    const oldStatus = currentBudget?.status;
+
     const { error } = await supabase
       .from("budgets")
       .update({ status: newStatus, updated_at: new Date().toISOString() })
@@ -147,11 +162,42 @@ export default function BudgetsList() {
 
     if (error) {
       toast.error("Erro ao atualizar status do orçamento.");
-    } else {
-      toast.success(`Status atualizado para "${STATUS_CONFIG[newStatus].label}"`);
-      setBudgets((prev) =>
-        prev.map((b) => (b.id === budgetId ? { ...b, status: newStatus } : b))
-      );
+      return;
+    }
+
+    toast.success(`Status atualizado para "${STATUS_CONFIG[newStatus].label}"`);
+    setBudgets((prev) =>
+      prev.map((b) => (b.id === budgetId ? { ...b, status: newStatus } : b))
+    );
+
+    // Baixa automática de estoque ao aprovar orçamento com peças
+    if (newStatus === "aprovado" && currentBudget?.budget_data?.parts) {
+      const parts = currentBudget.budget_data.parts;
+      const depletion = await depleteBudgetStock(budgetId, parts, user.id);
+
+      if (depletion.depletedCount > 0) {
+        toast.success(
+          `Estoque atualizado: ${depletion.depletedCount} peça(s) baixada(s) automaticamente.`
+        );
+      }
+      if (depletion.createdItems.length > 0) {
+        toast.info(
+          `Nova(s) peça(s) cadastrada(s) no estoque com saldo negativo: ${depletion.createdItems.join(", ")}`
+        );
+      }
+      if (depletion.negativeItems.length > 0) {
+        toast.warning(
+          `Atenção: Peças com saldo negativo: ${depletion.negativeItems.map((i) => `${i.name} (${i.currentQuantity})`).join(", ")}`
+        );
+      }
+    }
+
+    // Estorno automático ao cancelar orçamento que já estava aprovado
+    if (newStatus === "cancelado" && oldStatus === "aprovado") {
+      const restored = await restockBudgetStock(budgetId, user.id);
+      if (restored > 0) {
+        toast.info(`Estorno de estoque: ${restored} peça(s) devolvida(s) ao saldo.`);
+      }
     }
   };
 
@@ -231,7 +277,41 @@ export default function BudgetsList() {
   const handleDownloadPdf = async (budget: BudgetRecord) => {
     setDownloadingId(budget.id);
     try {
-      const bData = budget.budget_data;
+      let bData = { ...(budget.budget_data || {}) };
+
+      // Dynamic enrichment: If client address, phone or cpf is missing from budget_data, enrich from clients table
+      if (!bData.clientAddress || !bData.clientPhone || !bData.clientCpf) {
+        if (user) {
+          const { data: matchedClients } = await supabase
+            .from("clients")
+            .select("*")
+            .eq("user_id", user.id);
+
+          if (matchedClients && matchedClients.length > 0) {
+            const clientMatch = matchedClients.find(
+              (c) =>
+                c.name.toLowerCase().trim() === budget.client_name.toLowerCase().trim() ||
+                (budget.client_email && c.email && c.email.toLowerCase().trim() === budget.client_email.toLowerCase().trim())
+            );
+
+            if (clientMatch) {
+              if (!bData.clientPhone && clientMatch.phone) bData.clientPhone = clientMatch.phone;
+              if (!bData.clientEmail && clientMatch.email) bData.clientEmail = clientMatch.email;
+              if (!bData.clientCpf && clientMatch.cpf_cnpj) bData.clientCpf = clientMatch.cpf_cnpj;
+              if (!bData.clientAddress && (clientMatch.address || clientMatch.city)) {
+                bData.clientAddress = [
+                  clientMatch.address ? `${clientMatch.address}${clientMatch.address_number ? `, nº ${clientMatch.address_number}` : ""}` : "",
+                  clientMatch.complement,
+                  clientMatch.neighborhood,
+                  clientMatch.city && clientMatch.state ? `${clientMatch.city}/${clientMatch.state}` : clientMatch.city,
+                  clientMatch.cep ? `CEP ${clientMatch.cep}` : "",
+                ].filter(Boolean).join(" - ");
+              }
+            }
+          }
+        }
+      }
+
       if (bData?.budget_type === "maintenance" || budget.budget_number.startsWith("MAN-")) {
         await generateMaintenanceBudgetPdf(bData as MaintenanceBudgetData);
       } else {
@@ -500,10 +580,28 @@ export default function BudgetsList() {
 
                         {/* Client */}
                         <TableCell>
-                          <div className="space-y-0.5">
+                          <div className="space-y-1">
                             <p className="font-medium text-sm text-foreground">{budget.client_name}</p>
                             {budget.client_email && (
                               <p className="text-xs text-muted-foreground">{budget.client_email}</p>
+                            )}
+                            {budget.email_sent_at && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30">
+                                      <Mail className="h-2.5 w-2.5" />
+                                      Enviado por e-mail em {format(new Date(budget.email_sent_at), "dd/MM")}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Último envio por e-mail registrado em{" "}
+                                    {format(new Date(budget.email_sent_at), "dd/MM/yyyy 'às' HH:mm", {
+                                      locale: ptBR,
+                                    })}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </div>
                         </TableCell>
@@ -615,6 +713,40 @@ export default function BudgetsList() {
                               </Tooltip>
                             </TooltipProvider>
 
+                            {/* Client Hub Public Link Action */}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                                    onClick={() => setHubTarget(budget)}
+                                  >
+                                    <Globe className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Portal do Cliente (Link Público)</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            {/* Send by Email Action */}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-sky-600 dark:text-sky-400 hover:text-sky-700 hover:bg-sky-500/10"
+                                    onClick={() => setSendEmailTarget(budget)}
+                                  >
+                                    <Mail className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Encaminhar Orçamento por E-mail</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
                             {/* Download PDF Action */}
                             <TooltipProvider>
                               <Tooltip>
@@ -720,6 +852,26 @@ export default function BudgetsList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Client Hub Modal */}
+      {hubTarget && (
+        <ClientHubModal
+          open={!!hubTarget}
+          onOpenChange={(open) => !open && setHubTarget(null)}
+          budgetId={hubTarget.id}
+          title={hubTarget.project_name}
+          clientName={hubTarget.client_name}
+          clientPhone={hubTarget.budget_data?.clientPhone}
+        />
+      )}
+
+      {/* Send Budget by Email Modal */}
+      <SendBudgetEmailModal
+        budget={sendEmailTarget}
+        open={!!sendEmailTarget}
+        onOpenChange={(open) => !open && setSendEmailTarget(null)}
+        onSuccess={fetchBudgets}
+      />
     </div>
   );
 }

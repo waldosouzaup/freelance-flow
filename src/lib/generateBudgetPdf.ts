@@ -584,7 +584,7 @@ async function renderSinglePageInvoice(data: CommonBudgetData, filename: string)
 
   // ─── 3. CUSTOMER, REPORTED ISSUE & PROPOSAL VALIDITY BOX ───
   y = 46.5;
-  const boxHeight = 23;
+  const boxHeight = 24.5;
   const boxWidth = rightMargin - margin; // 182mm
   const hasReportedIssue = Boolean(data.reportedIssue && data.reportedIssue.trim());
 
@@ -601,9 +601,9 @@ async function renderSinglePageInvoice(data: CommonBudgetData, filename: string)
     doc.line(div2X, y, div2X, y + boxHeight);
 
     // 1. Customer Column (margin to div1X: 72mm)
-    let curClientY = y + 5;
+    let curClientY = y + 4.2;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(8.2);
     doc.setTextColor(...darkColor);
     const clientNameLines = doc.splitTextToSize(
       sanitizeText(data.clientName || "CLIENTE NÃO INFORMADO").toUpperCase(),
@@ -611,55 +611,59 @@ async function renderSinglePageInvoice(data: CommonBudgetData, filename: string)
     );
     doc.text(clientNameLines[0] || "", margin + 3, curClientY);
     if (clientNameLines.length > 1) {
-      curClientY += 3.5;
+      curClientY += 3.2;
       doc.text(clientNameLines[1] || "", margin + 3, curClientY);
     }
-    curClientY += 4.0;
+    curClientY += 3.4;
 
     // Telefone
-    if (data.clientPhone?.trim()) {
+    if (data.clientPhone?.trim() && curClientY <= y + boxHeight - 2) {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.2);
+      doc.setFontSize(7.0);
       doc.setTextColor(...darkColor);
       doc.text("Tel: ", margin + 3, curClientY);
       const telLabelW = doc.getTextWidth("Tel: ");
       doc.setFont("helvetica", "normal");
       doc.text(sanitizeText(data.clientPhone), margin + 3 + telLabelW, curClientY);
-      curClientY += 3.5;
+      curClientY += 3.2;
     }
 
     // E-mail
-    if (data.clientEmail?.trim()) {
+    if (data.clientEmail?.trim() && curClientY <= y + boxHeight - 2) {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.2);
+      doc.setFontSize(7.0);
       doc.setTextColor(...darkColor);
       doc.text("E-mail: ", margin + 3, curClientY);
       const emailLabelW = doc.getTextWidth("E-mail: ");
       doc.setFont("helvetica", "normal");
       const emailLines = doc.splitTextToSize(sanitizeText(data.clientEmail), div1X - margin - 6 - emailLabelW);
       doc.text(emailLines[0] || "", margin + 3 + emailLabelW, curClientY);
-      curClientY += 3.5;
+      curClientY += 3.2;
     }
 
     // CPF / CNPJ
     if (data.clientCpf?.trim() && curClientY <= y + boxHeight - 2) {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.0);
-      doc.setTextColor(...mutedColor);
+      doc.setFontSize(6.8);
+      doc.setTextColor(...darkColor);
       doc.text("CPF/CNPJ: ", margin + 3, curClientY);
       const cpfLabelW = doc.getTextWidth("CPF/CNPJ: ");
       doc.setFont("helvetica", "normal");
       doc.text(sanitizeText(data.clientCpf), margin + 3 + cpfLabelW, curClientY);
-      curClientY += 3.5;
+      curClientY += 3.2;
     }
 
     // Endereço
     if (data.clientAddress?.trim() && curClientY <= y + boxHeight - 2) {
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(6.8);
+      doc.setFontSize(6.5);
       doc.setTextColor(...mutedColor);
       const splitAddr = doc.splitTextToSize(sanitizeText(data.clientAddress), div1X - margin - 6);
       doc.text(splitAddr[0] || "", margin + 3, curClientY);
+      if (splitAddr[1] && curClientY + 2.8 <= y + boxHeight - 1.2) {
+        curClientY += 2.8;
+        doc.text(splitAddr[1] || "", margin + 3, curClientY);
+      }
     }
 
     // 2. Defeito Relatado Column (div1X to div2X: 67mm)
@@ -699,57 +703,72 @@ async function renderSinglePageInvoice(data: CommonBudgetData, filename: string)
     const dividerX = 143;
     doc.line(dividerX, y, dividerX, y + boxHeight);
 
-    // Customer Side (Left)
-    let curClientY = y + 5.5;
+    // Customer Side (Left: 129mm width)
+    let curClientY = y + 4.8;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.0);
+    doc.setFontSize(8.8);
     doc.setTextColor(...darkColor);
     doc.text(sanitizeText(data.clientName || "CLIENTE NÃO INFORMADO").toUpperCase(), margin + 3.5, curClientY);
-    curClientY += 4.5;
+    curClientY += 3.8;
 
-    // Telefone
-    if (data.clientPhone?.trim()) {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
-      doc.setTextColor(...darkColor);
-      doc.text("Tel: ", margin + 3.5, curClientY);
-      const telLabelW = doc.getTextWidth("Tel: ");
-      doc.setFont("helvetica", "normal");
-      doc.text(sanitizeText(data.clientPhone), margin + 3.5 + telLabelW, curClientY);
-      curClientY += 3.8;
-    }
+    // Contact line (Phone + Email)
+    const hasPhone = Boolean(data.clientPhone?.trim());
+    const hasEmail = Boolean(data.clientEmail?.trim());
 
-    // E-mail
-    if (data.clientEmail?.trim()) {
+    if (hasPhone || hasEmail) {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
+      doc.setFontSize(7.2);
       doc.setTextColor(...darkColor);
-      doc.text("E-mail: ", margin + 3.5, curClientY);
-      const emailLabelW = doc.getTextWidth("E-mail: ");
-      doc.setFont("helvetica", "normal");
-      doc.text(sanitizeText(data.clientEmail), margin + 3.5 + emailLabelW, curClientY);
-      curClientY += 3.8;
+      let contactX = margin + 3.5;
+
+      if (hasPhone) {
+        doc.text("Tel: ", contactX, curClientY);
+        const lW = doc.getTextWidth("Tel: ");
+        doc.setFont("helvetica", "normal");
+        doc.text(sanitizeText(data.clientPhone!), contactX + lW, curClientY);
+        contactX += lW + doc.getTextWidth(sanitizeText(data.clientPhone!)) + 5;
+      }
+
+      if (hasEmail && contactX + 45 < dividerX - 5) {
+        doc.setFont("helvetica", "bold");
+        doc.text("E-mail: ", contactX, curClientY);
+        const lW = doc.getTextWidth("E-mail: ");
+        doc.setFont("helvetica", "normal");
+        doc.text(sanitizeText(data.clientEmail!), contactX + lW, curClientY);
+      } else if (hasEmail) {
+        curClientY += 3.2;
+        doc.setFont("helvetica", "bold");
+        doc.text("E-mail: ", margin + 3.5, curClientY);
+        const lW = doc.getTextWidth("E-mail: ");
+        doc.setFont("helvetica", "normal");
+        doc.text(sanitizeText(data.clientEmail!), margin + 3.5 + lW, curClientY);
+      }
+      curClientY += 3.4;
     }
 
     // CPF / CNPJ
     if (data.clientCpf?.trim() && curClientY <= y + boxHeight - 2) {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.2);
-      doc.setTextColor(...mutedColor);
+      doc.setFontSize(7.0);
+      doc.setTextColor(...darkColor);
       doc.text("CPF/CNPJ: ", margin + 3.5, curClientY);
       const cpfLabelW = doc.getTextWidth("CPF/CNPJ: ");
       doc.setFont("helvetica", "normal");
       doc.text(sanitizeText(data.clientCpf), margin + 3.5 + cpfLabelW, curClientY);
-      curClientY += 3.8;
+      curClientY += 3.4;
     }
 
     // Endereço
     if (data.clientAddress?.trim() && curClientY <= y + boxHeight - 2) {
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.0);
+      doc.setFontSize(6.8);
       doc.setTextColor(...mutedColor);
       const splitAddr = doc.splitTextToSize(sanitizeText(data.clientAddress), dividerX - margin - 7);
       doc.text(splitAddr[0] || "", margin + 3.5, curClientY);
+      if (splitAddr[1] && curClientY + 2.8 <= y + boxHeight - 1.2) {
+        curClientY += 2.8;
+        doc.text(splitAddr[1] || "", margin + 3.5, curClientY);
+      }
     }
 
     // Validity Side (Right)

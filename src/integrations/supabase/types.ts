@@ -16,37 +16,61 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
+          address: string | null
+          address_number: string | null
+          city: string | null
           company: string | null
+          complement: string | null
+          cpf_cnpj: string | null
           created_at: string
           email: string | null
           id: string
           name: string
+          neighborhood: string | null
           notes: string | null
           phone: string | null
+          state: string | null
           updated_at: string
           user_id: string
+          cep: string | null
         }
         Insert: {
+          address?: string | null
+          address_number?: string | null
+          city?: string | null
           company?: string | null
+          complement?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name: string
+          neighborhood?: string | null
           notes?: string | null
           phone?: string | null
+          state?: string | null
           updated_at?: string
           user_id: string
+          cep?: string | null
         }
         Update: {
+          address?: string | null
+          address_number?: string | null
+          city?: string | null
           company?: string | null
+          complement?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name?: string
+          neighborhood?: string | null
           notes?: string | null
           phone?: string | null
+          state?: string | null
           updated_at?: string
           user_id?: string
+          cep?: string | null
         }
         Relationships: []
       }
@@ -201,15 +225,327 @@ export type Database = {
           },
         ]
       }
+      budgets: {
+        Row: {
+          id: string
+          user_id: string
+          budget_number: string
+          status: "aguardando" | "aprovado" | "cancelado"
+          client_name: string
+          client_email: string | null
+          project_name: string
+          total_value: number
+          budget_data: Json
+          email_sent_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          budget_number: string
+          status?: "aguardando" | "aprovado" | "cancelado"
+          client_name: string
+          client_email?: string | null
+          project_name: string
+          total_value?: number
+          budget_data?: Json
+          email_sent_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          budget_number?: string
+          status?: "aguardando" | "aprovado" | "cancelado"
+          client_name?: string
+          client_email?: string | null
+          project_name?: string
+          total_value?: number
+          budget_data?: Json
+          email_sent_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      budget_counter: {
+        Row: {
+          id: string
+          user_id: string
+          year: number
+          last_number: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          year: number
+          last_number?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          year?: number
+          last_number?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory_items: {
+        Row: {
+          id: string
+          user_id: string
+          sku: string | null
+          name: string
+          description: string | null
+          category: string
+          unit: string
+          quantity: number
+          min_quantity: number
+          cost_price: number
+          sale_price: number
+          location: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          sku?: string | null
+          name: string
+          description?: string | null
+          category?: string
+          unit?: string
+          quantity?: number
+          min_quantity?: number
+          cost_price?: number
+          sale_price?: number
+          location?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          sku?: string | null
+          name?: string
+          description?: string | null
+          category?: string
+          unit?: string
+          quantity?: number
+          min_quantity?: number
+          cost_price?: number
+          sale_price?: number
+          location?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory_movements: {
+        Row: {
+          id: string
+          user_id: string
+          item_id: string
+          movement_type: "entrada" | "saida_orcamento" | "ajuste_manual" | "devolucao"
+          quantity: number
+          unit_cost: number
+          reference_budget_id: string | null
+          reference_project_id: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          item_id: string
+          movement_type: "entrada" | "saida_orcamento" | "ajuste_manual" | "devolucao"
+          quantity: number
+          unit_cost?: number
+          reference_budget_id?: string | null
+          reference_project_id?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          item_id?: string
+          movement_type?: "entrada" | "saida_orcamento" | "ajuste_manual" | "devolucao"
+          quantity?: number
+          unit_cost?: number
+          reference_budget_id?: string | null
+          reference_project_id?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_reference_budget_id_fkey"
+            columns: ["reference_budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_reference_project_id_fkey"
+            columns: ["reference_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      client_hub_tokens: {
+        Row: {
+          id: string
+          user_id: string
+          token: string
+          project_id: string | null
+          budget_id: string | null
+          is_active: boolean
+          allow_client_approval: boolean
+          expires_at: string | null
+          last_accessed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          token?: string
+          project_id?: string | null
+          budget_id?: string | null
+          is_active?: boolean
+          allow_client_approval?: boolean
+          expires_at?: string | null
+          last_accessed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          token?: string
+          project_id?: string | null
+          budget_id?: string | null
+          is_active?: boolean
+          allow_client_approval?: boolean
+          expires_at?: string | null
+          last_accessed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_hub_tokens_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_hub_tokens_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      operational_expenses: {
+        Row: {
+          id: string
+          user_id: string
+          description: string
+          category: "administrativa" | "software_cloud" | "ferramentas_oficina" | "infraestrutura" | "comercial_marketing" | "tributos_taxas" | "outros"
+          amount: number
+          expense_date: string
+          is_recurring: boolean
+          recurring_period: "mensal" | "anual" | "avulso" | null
+          project_id: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          description: string
+          category?: "administrativa" | "software_cloud" | "ferramentas_oficina" | "infraestrutura" | "comercial_marketing" | "tributos_taxas" | "outros"
+          amount: number
+          expense_date?: string
+          is_recurring?: boolean
+          recurring_period?: "mensal" | "anual" | "avulso" | null
+          project_id?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          description?: string
+          category?: "administrativa" | "software_cloud" | "ferramentas_oficina" | "infraestrutura" | "comercial_marketing" | "tributos_taxas" | "outros"
+          amount?: number
+          expense_date?: string
+          is_recurring?: boolean
+          recurring_period?: "mensal" | "anual" | "avulso" | null
+          project_id?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operational_expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_client_hub_data: {
+        Args: {
+          p_token: string
+        }
+        Returns: Json
+      }
+      get_next_budget_number: {
+        Args: {
+          p_user_id: string
+          p_year: number
+        }
+        Returns: number
+      }
+      ping: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       project_status: "em_andamento" | "concluido" | "pausado" | "cancelado"
+      inventory_movement_type: "entrada" | "saida_orcamento" | "ajuste_manual" | "devolucao"
+      expense_category: "administrativa" | "software_cloud" | "ferramentas_oficina" | "infraestrutura" | "comercial_marketing" | "tributos_taxas" | "outros"
     }
     CompositeTypes: {
       [_ in never]: never

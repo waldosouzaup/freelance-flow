@@ -1,28 +1,51 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Search, Mail, Phone, Building } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus, Pencil, Trash2, Search, Mail, Phone, Building, Eye, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { ClientDetailsModal, ClientRecord } from "@/components/clients/ClientDetailsModal";
 
 const ClientsList = () => {
   const { user } = useAuth();
-  const [clients, setClients] = useState<any[]>([]);
+  const navigate = useNavigate();
+  const [clients, setClients] = useState<ClientRecord[]>([]);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientRecord | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const fetchClients = async () => {
     if (!user) return;
-    const { data } = await supabase.from("clients").select("*").eq("user_id", user.id).order("name");
-    setClients(data || []);
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("name");
+    if (!error && data) {
+      setClients(data as ClientRecord[]);
+    }
   };
 
-  useEffect(() => { fetchClients(); }, [user]);
+  useEffect(() => {
+    fetchClients();
+  }, [user]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -40,7 +63,18 @@ const ClientsList = () => {
     setDeleteId(null);
   };
 
-  const filtered = clients.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
+  const handleOpenDetails = (client: ClientRecord) => {
+    setSelectedClient(client);
+    setIsDetailsOpen(true);
+  };
+
+  const filtered = clients.filter(
+    (c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.company && c.company.toLowerCase().includes(search.toLowerCase())) ||
+      (c.email && c.email.toLowerCase().includes(search.toLowerCase())) ||
+      (c.city && c.city.toLowerCase().includes(search.toLowerCase()))
+  );
 
   return (
     <div className="space-y-6 pb-8">
@@ -53,7 +87,9 @@ const ClientsList = () => {
               {clients.length} cadastrado{clients.length === 1 ? "" : "s"}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Gerencie os contatos, empresas e vínculos de seus clientes</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gerencie contatos, endereços com ViaCEP e copie dados cadastrais rapidamente
+          </p>
         </div>
         <Button asChild className="shadow-subtle">
           <Link to="/clients/new">
@@ -68,10 +104,10 @@ const ClientsList = () => {
         <CardContent className="p-4">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Buscar por nome do cliente ou empresa..." 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
+            <Input
+              placeholder="Buscar por nome, empresa, e-mail ou cidade..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               className="pl-9 bg-background"
             />
           </div>
@@ -88,7 +124,7 @@ const ClientsList = () => {
                   <TableHead className="font-semibold text-xs uppercase tracking-wider">Nome</TableHead>
                   <TableHead className="font-semibold text-xs uppercase tracking-wider">Email</TableHead>
                   <TableHead className="font-semibold text-xs uppercase tracking-wider">Telefone</TableHead>
-                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Empresa</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Empresa / Cidade</TableHead>
                   <TableHead className="font-semibold text-xs uppercase tracking-wider text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -102,7 +138,9 @@ const ClientsList = () => {
                         </div>
                         <div>
                           <p className="font-medium text-foreground">Nenhum cliente encontrado</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">Tente buscar por outro termo ou cadastre um novo cliente</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Tente buscar por outro termo ou cadastre um novo cliente
+                          </p>
                         </div>
                         <Button asChild variant="outline" size="sm" className="mt-2">
                           <Link to="/clients/new">
@@ -115,8 +153,26 @@ const ClientsList = () => {
                   </TableRow>
                 ) : (
                   filtered.map((c) => (
-                    <TableRow key={c.id} className="hover:bg-muted/40 transition-colors">
-                      <TableCell className="font-medium text-foreground">{c.name}</TableCell>
+                    <TableRow
+                      key={c.id}
+                      onClick={() => handleOpenDetails(c)}
+                      className="hover:bg-muted/40 transition-colors cursor-pointer group"
+                    >
+                      <TableCell className="font-medium text-foreground">
+                        <div className="flex items-center gap-2">
+                          <span className="group-hover:text-primary transition-colors">{c.name}</span>
+                          {c.address && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <MapPin className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent>Endereço cadastrado</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {c.email ? (
                           <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -138,32 +194,75 @@ const ClientsList = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        {c.company ? (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted text-xs font-medium text-foreground">
-                            <Building className="h-3 w-3 text-muted-foreground shrink-0" />
-                            {c.company}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {c.company ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-xs font-medium text-foreground">
+                              <Building className="h-3 w-3 text-muted-foreground shrink-0" />
+                              {c.company}
+                            </span>
+                          ) : null}
+                          {c.city ? (
+                            <span className="text-xs text-muted-foreground">
+                              {c.city}{c.state ? `/${c.state}` : ""}
+                            </span>
+                          ) : null}
+                          {!c.company && !c.city && (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-                            <Link to={`/clients/${c.id}/edit`}>
-                              <Pencil className="h-4 w-4" />
-                            </Link>
-                          </Button>
+                          {/* View Details Action */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                  onClick={() => handleOpenDetails(c)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Visualizar & Copiar Dados</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          {/* Edit Action */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                                  <Link to={`/clients/${c.id}/edit`}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Link>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Editar Cliente</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          {/* Delete Action */}
                           <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>Excluir Cliente</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Excluir cliente</AlertDialogTitle>
@@ -173,11 +272,11 @@ const ClientsList = () => {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction 
+                                <AlertDialogAction
                                   onClick={() => {
                                     setDeleteId(c.id);
                                     handleDelete();
-                                  }} 
+                                  }}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                   Excluir
@@ -195,6 +294,14 @@ const ClientsList = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Client Details Modal with Copy */}
+      <ClientDetailsModal
+        client={selectedClient}
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        onEdit={(id) => navigate(`/clients/${id}/edit`)}
+      />
     </div>
   );
 };

@@ -95,6 +95,14 @@ interface ClientOption {
   email: string | null;
   phone?: string | null;
   company?: string | null;
+  cpf_cnpj?: string | null;
+  cep?: string | null;
+  address?: string | null;
+  address_number?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
 }
 
 interface BudgetRecord {
@@ -143,6 +151,8 @@ const Calculator = () => {
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [clientCompany, setClientCompany] = useState("");
+  const [clientCpf, setClientCpf] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
   const [projectName, setProjectName] = useState("");
   const [validityDays, setValidityDays] = useState(30);
   const [paymentConditions, setPaymentConditions] = useState("");
@@ -213,11 +223,11 @@ const Calculator = () => {
 
     supabase
       .from("clients")
-      .select("id, name, email, phone, company")
+      .select("*")
       .eq("user_id", user.id)
       .order("name")
       .then(({ data }) => {
-        setClients(data || []);
+        setClients((data as ClientOption[]) || []);
       });
 
     supabase
@@ -409,6 +419,15 @@ const Calculator = () => {
     setClientEmail(client.email || "");
     setClientPhone(client.phone || "");
     setClientCompany(client.company || "");
+    setClientCpf(client.cpf_cnpj || "");
+    const fullAddr = [
+      client.address ? `${client.address}${client.address_number ? `, nº ${client.address_number}` : ""}` : "",
+      client.complement,
+      client.neighborhood,
+      client.city && client.state ? `${client.city}/${client.state}` : client.city,
+      client.cep ? `CEP ${client.cep}` : "",
+    ].filter(Boolean).join(" - ");
+    setClientAddress(fullAddr);
     setClientComboOpen(false);
   };
 
@@ -440,7 +459,8 @@ const Calculator = () => {
       clientName: clientName.trim(),
       clientEmail: clientEmail.trim(),
       clientPhone: clientPhone || undefined,
-      clientCpf: clientCompany || undefined,
+      clientCpf: clientCpf.trim() || undefined,
+      clientAddress: clientAddress.trim() || undefined,
       projectName: projectName.trim(),
       hourlyRate,
       hours,
@@ -781,6 +801,18 @@ const Calculator = () => {
                   </Popover>
                 </div>
 
+                {/* Client Phone */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Telefone / WhatsApp</Label>
+                  <Input
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value)}
+                    className="font-mono-numbers"
+                  />
+                </div>
+
                 {/* Client Email */}
                 <div className="space-y-2">
                   <Label className="text-sm">Email do Cliente</Label>
@@ -789,6 +821,27 @@ const Calculator = () => {
                     placeholder="cliente@email.com"
                     value={clientEmail}
                     onChange={(e) => setClientEmail(e.target.value)}
+                  />
+                </div>
+
+                {/* Client CPF / CNPJ */}
+                <div className="space-y-2">
+                  <Label className="text-sm">CPF ou CNPJ</Label>
+                  <Input
+                    placeholder="000.000.000-00"
+                    value={clientCpf}
+                    onChange={(e) => setClientCpf(e.target.value)}
+                    className="font-mono-numbers"
+                  />
+                </div>
+
+                {/* Client Address */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-sm">Endereço do Cliente (para o PDF)</Label>
+                  <Input
+                    placeholder="Rua, número, complemento, bairro, cidade - UF, CEP"
+                    value={clientAddress}
+                    onChange={(e) => setClientAddress(e.target.value)}
                   />
                 </div>
 

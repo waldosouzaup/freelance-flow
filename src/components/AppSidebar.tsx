@@ -10,6 +10,7 @@ import {
   Layers,
   Sparkles,
   FileSpreadsheet,
+  Boxes,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -63,10 +64,13 @@ const navGroups: NavGroup[] = [
         title: "Calculadora",
         url: "/calculator",
         icon: Calculator,
-        badge: "Novo",
-        badgeColor: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
       },
-      { title: "Faturamento", url: "/billing", icon: DollarSign },
+      {
+        title: "Estoque & Peças",
+        url: "/inventory",
+        icon: Boxes,
+      },
+      { title: "Faturamento & DRE", url: "/billing", icon: DollarSign },
     ],
   },
   {

@@ -44,6 +44,7 @@ import {
   Pilcrow,
   Eye,
   EyeOff,
+  Boxes,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -64,6 +65,14 @@ interface ClientOption {
   email: string | null;
   phone?: string | null;
   company?: string | null;
+  cpf_cnpj?: string | null;
+  cep?: string | null;
+  address?: string | null;
+  address_number?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
 }
 
 interface MaintenanceCalculatorProps {
@@ -112,6 +121,8 @@ export const MaintenanceCalculator = ({
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [clientCompany, setClientCompany] = useState("");
+  const [clientCpf, setClientCpf] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
   const [clientComboOpen, setClientComboOpen] = useState(false);
 
   // Equipment / Product Info
@@ -236,6 +247,20 @@ export const MaintenanceCalculator = ({
     { id: crypto.randomUUID(), name: "", quantity: 1, unitPrice: 0, totalPrice: 0 },
   ]);
 
+  // Inventory Items para Autocomplete / Seleção
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("inventory_items")
+      .select("id, name, sku, quantity, unit, cost_price, sale_price")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        if (data) setInventoryItems(data);
+      });
+  }, [user]);
+
   // Extra Costs (frete, deslocamento, insumos)
   const [extraCosts, setExtraCosts] = useState<ExtraCostItem[]>([]);
 
@@ -258,9 +283,9 @@ export const MaintenanceCalculator = ({
     if (editInitialData.clientName) setClientName(editInitialData.clientName);
     if (editInitialData.clientEmail) setClientEmail(editInitialData.clientEmail);
     if (editInitialData.clientPhone) setClientPhone(editInitialData.clientPhone);
-    if (editInitialData.clientCpf || editInitialData.clientCompany) {
-      setClientCompany(editInitialData.clientCpf || editInitialData.clientCompany || "");
-    }
+    if (editInitialData.clientCpf) setClientCpf(editInitialData.clientCpf);
+    if (editInitialData.clientAddress) setClientAddress(editInitialData.clientAddress);
+    if (editInitialData.clientCompany) setClientCompany(editInitialData.clientCompany);
     if (editInitialData.productName) setProductName(editInitialData.productName);
     if (editInitialData.brandModel) setBrandModel(editInitialData.brandModel);
     if (editInitialData.serialNumber) setSerialNumber(editInitialData.serialNumber);
@@ -296,6 +321,15 @@ export const MaintenanceCalculator = ({
     setClientEmail(c.email || "");
     setClientPhone(c.phone || "");
     setClientCompany(c.company || "");
+    setClientCpf(c.cpf_cnpj || "");
+    const fullAddr = [
+      c.address ? `${c.address}${c.address_number ? `, nº ${c.address_number}` : ""}` : "",
+      c.complement,
+      c.neighborhood,
+      c.city && c.state ? `${c.city}/${c.state}` : c.city,
+      c.cep ? `CEP ${c.cep}` : "",
+    ].filter(Boolean).join(" - ");
+    setClientAddress(fullAddr);
     setClientComboOpen(false);
   };
 
@@ -346,8 +380,20 @@ export const MaintenanceCalculator = ({
       parts.map((p) => {
         if (p.id !== id) return p;
         const updated = { ...p, [field]: value };
-        const qty = field === "quantity" ? Number(value) : p.quantity;
-        const price = field === "unitPrice" ? Number(value) : p.unitPrice;
+        let qty = field === "quantity" ? Number(value) : p.quantity;
+        let price = field === "unitPrice" ? Number(value) : p.unitPrice;
+
+        // Se o nome foi alterado e bate com uma peça cadastrada no estoque, puxa o preço de venda sugerido
+        if (field === "name" && typeof value === "string") {
+          const match = inventoryItems.find(
+            (i) => i.name.toLowerCase() === value.trim().toLowerCase()
+          );
+          if (match && (!p.unitPrice || p.unitPrice === 0)) {
+            price = Number(match.sale_price) || Number(match.cost_price) || 0;
+            updated.unitPrice = price;
+          }
+        }
+
         updated.totalPrice = Math.max(0, qty * price);
         return updated;
       })
@@ -443,7 +489,8 @@ export const MaintenanceCalculator = ({
         clientName,
         clientEmail,
         clientPhone: clientPhone || undefined,
-        clientCpf: clientCompany || undefined,
+        clientCpf: clientCpf.trim() || undefined,
+        clientAddress: clientAddress.trim() || undefined,
 
         productName,
         brandModel: brandModel.trim() || undefined,
@@ -676,7 +723,7 @@ export const MaintenanceCalculator = ({
                   placeholder="(00) 00000-0000"
                   value={clientPhone}
                   onChange={(e) => setClientPhone(e.target.value)}
-                  className="bg-background"
+                  className="bg-background font-mono-numbers"
                 />
               </div>
 
@@ -687,6 +734,26 @@ export const MaintenanceCalculator = ({
                   placeholder="cliente@email.com"
                   value={clientEmail}
                   onChange={(e) => setClientEmail(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm">CPF ou CNPJ</Label>
+                <Input
+                  placeholder="000.000.000-00"
+                  value={clientCpf}
+                  onChange={(e) => setClientCpf(e.target.value)}
+                  className="bg-background font-mono-numbers"
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-sm">Endereço do Cliente (para o PDF)</Label>
+                <Input
+                  placeholder="Rua, número, bairro, cidade - UF, CEP"
+                  value={clientAddress}
+                  onChange={(e) => setClientAddress(e.target.value)}
                   className="bg-background"
                 />
               </div>
@@ -940,7 +1007,23 @@ export const MaintenanceCalculator = ({
                       value={part.name}
                       onChange={(e) => updatePart(part.id, "name", e.target.value)}
                       className="bg-background text-sm h-9"
+                      list="inventory-parts-datalist"
                     />
+                    {(() => {
+                      const matched = inventoryItems.find(
+                        (i) => i.name.toLowerCase() === part.name.trim().toLowerCase()
+                      );
+                      if (!matched) return null;
+                      const isLow = Number(matched.quantity) <= 0;
+                      return (
+                        <div className="text-[10px] flex items-center gap-1 mt-0.5 font-medium">
+                          <Boxes className={`h-3 w-3 ${isLow ? "text-amber-500" : "text-emerald-500"}`} />
+                          <span className={isLow ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}>
+                            Saldo Estoque: {matched.quantity} {matched.unit}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="col-span-2">
                     <Input
@@ -976,6 +1059,14 @@ export const MaintenanceCalculator = ({
                 </div>
               ))
             )}
+            <datalist id="inventory-parts-datalist">
+              {inventoryItems.map((item) => (
+                <option key={item.id} value={item.name}>
+                  Saldo: {item.quantity} {item.unit} | Sugerido: R$ {Number(item.sale_price || item.cost_price).toFixed(2)}
+                </option>
+              ))}
+            </datalist>
+
             <div className="flex justify-end pt-1">
               <p className="text-xs font-medium text-emerald-500">
                 Subtotal Peças: {formatCurrency(partsTotal)}

@@ -19,6 +19,8 @@ import BudgetsList from "./pages/BudgetsList";
 import Billing from "./pages/Billing";
 import Parameters from "./pages/Parameters";
 import Settings from "./pages/Settings";
+import Inventory from "./pages/Inventory";
+import ClientHub from "./pages/ClientHub";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +42,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+    <Route path="/hub/:token" element={<ClientHub />} />
     <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/projects" element={<ProtectedRoute><ProjectsList /></ProtectedRoute>} />
     <Route path="/projects/new" element={<ProtectedRoute><ProjectForm /></ProtectedRoute>} />
@@ -50,6 +53,7 @@ const AppRoutes = () => (
     <Route path="/clients/:id/edit" element={<ProtectedRoute><ClientForm /></ProtectedRoute>} />
     <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
     <Route path="/budgets" element={<ProtectedRoute><BudgetsList /></ProtectedRoute>} />
+    <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
     <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
     <Route path="/parameters" element={<ProtectedRoute><Parameters /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

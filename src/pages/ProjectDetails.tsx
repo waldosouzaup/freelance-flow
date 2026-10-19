@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Pencil, Plus, Trash2, ExternalLink, TrendingUp, DollarSign, Clock, BarChart3 } from "lucide-react";
+import { Pencil, Plus, Trash2, ExternalLink, TrendingUp, DollarSign, Clock, BarChart3, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { ClientHubModal } from "@/components/clientHub/ClientHubModal";
 import {
   analyzeProfitability,
   formatCurrency,
@@ -43,10 +44,11 @@ const ProjectDetails = () => {
   const [notes, setNotes] = useState("");
   const [editingStage, setEditingStage] = useState<string | null>(null);
   const [editStageTitle, setEditStageTitle] = useState("");
+  const [hubOpen, setHubOpen] = useState(false);
 
   const fetchProject = async () => {
     if (!user || !id) return;
-    const { data } = await supabase.from("projects").select("*, clients(name)").eq("id", id).single();
+    const { data } = await supabase.from("projects").select("*, clients(name, phone)").eq("id", id).single();
     if (data) {
       setProject(data);
       setNotes(data.general_notes || "");
@@ -108,14 +110,24 @@ const ProjectDetails = () => {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{project.name}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Visão detalhada de etapas, lucratividade e notas</p>
         </div>
-        <Button asChild variant="outline" size="sm" className="shadow-subtle">
-          <Link to={`/projects/${id}/edit`}><Pencil className="h-4 w-4 mr-1.5" />Editar Projeto</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setHubOpen(true)}
+            className="gap-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-subtle"
+          >
+            <Globe className="h-4 w-4" /> Link do Cliente
+          </Button>
+          <Button asChild variant="outline" size="sm" className="shadow-subtle">
+            <Link to={`/projects/${id}/edit`}><Pencil className="h-4 w-4 mr-1.5" />Editar Projeto</Link>
+          </Button>
+        </div>
       </div>
 
       {/* Project info */}
@@ -345,6 +357,18 @@ const ProjectDetails = () => {
           <Button size="sm" onClick={saveNotes} className="shadow-subtle">Salvar Notas</Button>
         </CardContent>
       </Card>
+
+      {/* Client Hub Modal */}
+      {project && (
+        <ClientHubModal
+          open={hubOpen}
+          onOpenChange={setHubOpen}
+          projectId={project.id}
+          title={project.name}
+          clientName={project.clients?.name}
+          clientPhone={project.clients?.phone}
+        />
+      )}
     </div>
   );
 };
